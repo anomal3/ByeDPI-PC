@@ -1,0 +1,176 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:ByeDpiPc.App.ViewModels"
+             x:Class="ByeDpiPc.App.Views.AppsView"
+             x:DataType="vm:AppsViewModel">
+
+  <UserControl.Styles>
+    <Style Selector="Border.rule">
+      <Setter Property="Transitions">
+        <Transitions>
+          <BrushTransition Property="BorderBrush" Duration="0:0:0.2" />
+          <DoubleTransition Property="Opacity" Duration="0:0:0.2" />
+        </Transitions>
+      </Setter>
+    </Style>
+    <Style Selector="Border.rule:pointerover">
+      <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+    </Style>
+    <Style Selector="Border.rule.off">
+      <Setter Property="Opacity" Value="0.62" />
+    </Style>
+    <Style Selector="PathIcon.chev">
+      <Setter Property="RenderTransform" Value="rotate(0deg)" />
+      <Setter Property="Transitions">
+        <Transitions><TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.2" /></Transitions>
+      </Setter>
+    </Style>
+    <Style Selector="PathIcon.chev.open">
+      <Setter Property="RenderTransform" Value="rotate(90deg)" />
+    </Style>
+  </UserControl.Styles>
+
+  <Grid RowDefinitions="Auto,*">
+    <StackPanel Margin="32,26,32,12" Spacing="14">
+      <Grid ColumnDefinitions="*,Auto">
+        <StackPanel Spacing="4">
+          <TextBlock Classes="h1" Text="Приложения и сайты" />
+          <TextBlock Classes="muted" Text="Отметьте, что должно идти через обход DPI. Для каждого правила можно выбрать маршрут." TextWrapping="Wrap" />
+        </StackPanel>
+      </Grid>
+
+      <Grid ColumnDefinitions="Auto,*">
+        <Border Classes="segments">
+          <StackPanel Orientation="Horizontal">
+            <RadioButton Classes="segment" GroupName="filter" Content="Только выбранное" IsChecked="{Binding IsWhitelist}" />
+            <RadioButton Classes="segment" GroupName="filter" Content="Всё, кроме выбранного" IsChecked="{Binding IsBlacklist}" />
+            <RadioButton Classes="segment" GroupName="filter" Content="Весь трафик" IsChecked="{Binding IsAll}" />
+          </StackPanel>
+        </Border>
+        <TextBlock Grid.Column="1" Classes="caption" Text="{Binding FilterHint}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="14,0,0,0" />
+      </Grid>
+
+      <Grid ColumnDefinitions="*,Auto">
+        <TextBox Text="{Binding Search}" Watermark="Поиск" MinHeight="36" VerticalContentAlignment="Center">
+          <TextBox.InnerLeftContent>
+            <PathIcon Data="{StaticResource Icon.Magnify}" Width="16" Height="16" Margin="10,0,0,0" Foreground="{DynamicResource MutedBrush}" />
+          </TextBox.InnerLeftContent>
+        </TextBox>
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" Margin="10,0,0,0">
+          <Button Classes="accent" Command="{Binding AddExecutableCommand}" ToolTip.Tip="Выбрать .exe программы">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <PathIcon Data="{StaticResource Icon.Plus}" />
+              <TextBlock Text="Программа" />
+            </StackPanel>
+          </Button>
+          <Button Classes="soft" Command="{Binding ShowRunningCommand}" ToolTip.Tip="Выбрать из запущенных сейчас программ">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <PathIcon Data="{StaticResource Icon.Play}" />
+              <TextBlock Text="Запущенные" />
+            </StackPanel>
+          </Button>
+          <Button Classes="soft" Command="{Binding ShowInstalledCommand}" ToolTip.Tip="Выбрать из установленных программ">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <PathIcon Data="{StaticResource Icon.ApplicationOutline}" />
+              <TextBlock Text="Установленные" />
+            </StackPanel>
+          </Button>
+          <Button Classes="soft" Command="{Binding AddCustomCommand}" ToolTip.Tip="Свой набор доменов и подсетей">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <PathIcon Data="{StaticResource Icon.Web}" />
+              <TextBlock Text="Домены" />
+            </StackPanel>
+          </Button>
+        </StackPanel>
+      </Grid>
+
+      <Border Classes="banner warning appear" IsVisible="{Binding IsProxyMode}">
+        <StackPanel Orientation="Horizontal" Spacing="10">
+          <PathIcon Data="{StaticResource Icon.InformationOutline}" Foreground="{DynamicResource WarningBrush}" VerticalAlignment="Top" />
+          <TextBlock TextWrapping="Wrap" MaxWidth="700"
+                     Text="Сейчас режим «Только прокси»: работают только домены (через системный прокси в браузерах). Чтобы направить программу целиком, включите режим TUN в настройках — или укажите в самой программе SOCKS5-прокси 127.0.0.1:1080 (например, Telegram: Настройки → Продвинутые → Тип соединения)." />
+        </StackPanel>
+      </Border>
+    </StackPanel>
+
+    <ScrollViewer Grid.Row="1">
+      <StackPanel Margin="32,0,32,28" Spacing="10">
+        <ItemsControl ItemsSource="{Binding Items}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:RuleItemViewModel">
+              <Border Classes="card rule appear" Classes.off="{Binding !Enabled}" Padding="0" Margin="0,0,0,10" IsVisible="{Binding IsVisible}">
+                <StackPanel>
+                  <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto" Margin="16,12">
+                    <Border Width="40" Height="40" CornerRadius="11" Background="{Binding IconSoftBrush}" Margin="0,0,14,0">
+                      <Panel>
+                        <PathIcon Data="{Binding Icon}" Foreground="{Binding IconBrush}" Width="21" Height="21" IsVisible="{Binding !HasBitmap}" />
+                        <Image Source="{Binding Bitmap}" Width="24" Height="24" IsVisible="{Binding HasBitmap}" />
+                      </Panel>
+                    </Border>
+                    <Button Grid.Column="1" Classes="ghost" Padding="6,4" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                            Command="{Binding ToggleExpandCommand}" FontWeight="Normal">
+                      <StackPanel Spacing="1">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                          <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                          <PathIcon Classes="chev" Classes.open="{Binding IsExpanded}" Data="{StaticResource Icon.ChevronRight}" Width="14" Height="14" Foreground="{DynamicResource MutedBrush}" />
+                        </StackPanel>
+                        <TextBlock Classes="caption" Text="{Binding Summary}" />
+                      </StackPanel>
+                    </Button>
+                    <PathIcon Grid.Column="2" Data="{StaticResource Icon.AlertOutline}" Foreground="{DynamicResource WarningBrush}" Width="17" Height="17"
+                              Margin="8,0" IsVisible="{Binding HasHint}" ToolTip.Tip="{Binding Hint}" Background="Transparent" />
+                    <ComboBox Grid.Column="3" ItemsSource="{Binding RouteNames}" SelectedIndex="{Binding RouteIndex}" Width="160" Margin="8,0" VerticalAlignment="Center"
+                              ToolTip.Tip="Маршрут: через обход DPI, напрямую или через ваш внешний прокси" />
+                    <ToggleSwitch Grid.Column="4" IsChecked="{Binding Enabled}" OnContent="" OffContent="" MinWidth="0" Margin="6,0,0,0" VerticalAlignment="Center" />
+                  </Grid>
+
+                  <Border IsVisible="{Binding IsExpanded}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0" Padding="16,14" Classes="appear">
+                    <StackPanel Spacing="12">
+                      <Border Classes="banner warning" IsVisible="{Binding HasHint}">
+                        <TextBlock Text="{Binding Hint}" TextWrapping="Wrap" />
+                      </Border>
+                      <Border Classes="banner danger" IsVisible="{Binding ShowUpstreamWarning}">
+                        <TextBlock Text="Внешний прокси не включён в настройках — пока это правило идёт через обход DPI." TextWrapping="Wrap" />
+                      </Border>
+                      <TextBox Text="{Binding Name}" Watermark="Название" IsVisible="{Binding !IsPreset}" />
+                      <Grid ColumnDefinitions="*,*,*">
+                        <StackPanel Spacing="6" Margin="0,0,8,0">
+                          <TextBlock Classes="caption" Text="Программы (по одной в строке)" />
+                          <TextBox Classes="mono" Text="{Binding ProcessesText}" AcceptsReturn="True" TextWrapping="NoWrap" Height="130" Watermark="Telegram.exe" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Spacing="6" Margin="4,0">
+                          <TextBlock Classes="caption" Text="Домены (с поддоменами)" />
+                          <TextBox Classes="mono" Text="{Binding DomainsText}" AcceptsReturn="True" TextWrapping="NoWrap" Height="130" Watermark="example.com" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="2" Spacing="6" Margin="8,0,0,0">
+                          <TextBlock Classes="caption" Text="IP-подсети (CIDR)" />
+                          <TextBox Classes="mono" Text="{Binding CidrsText}" AcceptsReturn="True" TextWrapping="NoWrap" Height="130" Watermark="91.108.4.0/22" />
+                        </StackPanel>
+                      </Grid>
+                      <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+                        <Button Classes="soft" Command="{Binding ResetCommand}" IsVisible="{Binding IsPreset}">
+                          <StackPanel Orientation="Horizontal" Spacing="8">
+                            <PathIcon Data="{StaticResource Icon.Restore}" />
+                            <TextBlock Text="Вернуть исходный список" />
+                          </StackPanel>
+                        </Button>
+                        <Button Classes="danger" Command="{Binding DeleteCommand}">
+                          <StackPanel Orientation="Horizontal" Spacing="8">
+                            <PathIcon Data="{StaticResource Icon.DeleteOutline}" />
+                            <TextBlock Text="Удалить" />
+                          </StackPanel>
+                        </Button>
+                      </StackPanel>
+                    </StackPanel>
+                  </Border>
+                </StackPanel>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <Button Classes="link" HorizontalAlignment="Center" Command="{Binding RestorePresetsCommand}" Content="Вернуть удалённые встроенные наборы" />
+      </StackPanel>
+    </ScrollViewer>
+  </Grid>
+</UserControl>

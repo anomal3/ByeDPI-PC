@@ -1,0 +1,129 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:ByeDpiPc.App.ViewModels"
+             x:Class="ByeDpiPc.App.Views.TesterView"
+             x:DataType="vm:TesterViewModel">
+  <UserControl.Styles>
+    <Style Selector="Border.site">
+      <Setter Property="CornerRadius" Value="999" />
+      <Setter Property="Padding" Value="9,3" />
+      <Setter Property="Margin" Value="0,0,6,6" />
+      <Setter Property="Background" Value="{DynamicResource DangerSoftBrush}" />
+    </Style>
+    <Style Selector="Border.site.ok">
+      <Setter Property="Background" Value="{DynamicResource SuccessSoftBrush}" />
+    </Style>
+    <Style Selector="Border.site TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />
+    </Style>
+    <Style Selector="Border.site.ok TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource SuccessBrush}" />
+    </Style>
+    <Style Selector="ProgressBar.score">
+      <Setter Property="Foreground" Value="{DynamicResource DangerBrush}" />
+      <Setter Property="Height" Value="6" />
+      <Setter Property="MinWidth" Value="80" />
+    </Style>
+    <Style Selector="ProgressBar.score.mid"><Setter Property="Foreground" Value="{DynamicResource WarningBrush}" /></Style>
+    <Style Selector="ProgressBar.score.good"><Setter Property="Foreground" Value="{DynamicResource SuccessBrush}" /></Style>
+    <Style Selector="Border.result.applied">
+      <Setter Property="BorderBrush" Value="{DynamicResource SuccessBrush}" />
+    </Style>
+  </UserControl.Styles>
+
+  <Grid RowDefinitions="Auto,*">
+    <StackPanel Margin="32,26,32,12" Spacing="14">
+      <StackPanel Spacing="4">
+        <TextBlock Classes="h1" Text="Подбор стратегии" />
+        <TextBlock Classes="muted" TextWrapping="Wrap"
+                   Text="Сначала сайты проверяются напрямую, затем через каждую стратегию (ваши + встроенные + набор из ByeByeDPI). Лучшую можно применить одной кнопкой." />
+      </StackPanel>
+
+      <Border Classes="card">
+        <StackPanel Spacing="12">
+          <Grid ColumnDefinitions="*,Auto">
+            <WrapPanel VerticalAlignment="Center">
+              <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,0,20,6">
+                <TextBlock Classes="muted" Text="Таймаут, с" VerticalAlignment="Center" />
+                <NumericUpDown Value="{Binding Timeout}" Minimum="1" Maximum="30" Width="110" FormatString="0" IsEnabled="{Binding !IsRunning}" />
+              </StackPanel>
+              <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,0,20,6">
+                <TextBlock Classes="muted" Text="Параллельно" VerticalAlignment="Center" />
+                <NumericUpDown Value="{Binding Parallel}" Minimum="1" Maximum="16" Width="110" FormatString="0" IsEnabled="{Binding !IsRunning}" />
+              </StackPanel>
+              <CheckBox IsChecked="{Binding IncludeByeByeDpiSet}" Content="Набор ByeByeDPI (60 стратегий)" IsEnabled="{Binding !IsRunning}" Margin="0,0,0,6" />
+            </WrapPanel>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Top">
+              <Button Classes="accent" Command="{Binding StartCommand}" IsVisible="{Binding !IsRunning}">
+                <StackPanel Orientation="Horizontal" Spacing="8"><PathIcon Data="{StaticResource Icon.Play}" /><TextBlock Text="Начать" /></StackPanel>
+              </Button>
+              <Button Classes="danger" Command="{Binding StopCommand}" IsVisible="{Binding IsRunning}">
+                <StackPanel Orientation="Horizontal" Spacing="8"><PathIcon Data="{StaticResource Icon.Stop}" /><TextBlock Text="Стоп" /></StackPanel>
+              </Button>
+              <Button Classes="soft" Command="{Binding ApplyBestCommand}" IsEnabled="{Binding HasResults}">
+                <StackPanel Orientation="Horizontal" Spacing="8"><PathIcon Data="{StaticResource Icon.StarOutline}" /><TextBlock Text="Применить лучшую" /></StackPanel>
+              </Button>
+            </StackPanel>
+          </Grid>
+          <TextBlock Classes="caption" Text="{Binding SitesInfo}" />
+          <StackPanel Spacing="6" IsVisible="{Binding PhaseText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+            <Grid ColumnDefinitions="Auto,*,Auto">
+              <PathIcon Classes="spin" Data="{StaticResource Icon.Refresh}" Width="16" Height="16" Foreground="{DynamicResource AccentBrush}"
+                        IsVisible="{Binding IsRunning}" Margin="0,0,8,0" />
+              <TextBlock Grid.Column="1" Text="{Binding PhaseText}" FontWeight="Medium" TextWrapping="Wrap" />
+              <TextBlock Grid.Column="2" Classes="caption" Text="{Binding ProgressText}" VerticalAlignment="Center" />
+            </Grid>
+            <ProgressBar Minimum="0" Maximum="1" Value="{Binding Progress}" IsVisible="{Binding IsRunning}" />
+          </StackPanel>
+          <TextBlock Text="{Binding BestText}" Foreground="{DynamicResource SuccessBrush}" FontWeight="SemiBold" TextWrapping="Wrap"
+                     IsVisible="{Binding BestText, Converter={x:Static ObjectConverters.IsNotNull}}" />
+        </StackPanel>
+      </Border>
+    </StackPanel>
+
+    <ScrollViewer Grid.Row="1">
+      <StackPanel Margin="32,0,32,28" Spacing="14">
+        <Border Classes="card appear" IsVisible="{Binding DirectSummary, Converter={x:Static ObjectConverters.IsNotNull}}">
+          <StackPanel Spacing="10">
+            <TextBlock Classes="h3" Text="Без обхода" />
+            <TextBlock Classes="muted" Text="{Binding DirectSummary}" TextWrapping="Wrap" />
+            <ItemsControl ItemsSource="{Binding DirectSites}">
+              <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:SiteChip">
+                  <Border Classes="site" Classes.ok="{Binding Ok}" ToolTip.Tip="{Binding Tip}">
+                    <TextBlock Text="{Binding Site}" FontSize="12" />
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </Border>
+
+        <ItemsControl ItemsSource="{Binding Results}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:StrategyResultItem">
+              <Border Classes="card result appear" Classes.applied="{Binding IsApplied}" Padding="14,10" Margin="0,0,0,8" ToolTip.Tip="{Binding Tip}">
+                <Grid ColumnDefinitions="36,*,140,80,Auto">
+                  <TextBlock Text="{Binding Rank, StringFormat='#{0}'}" Classes="muted" FontWeight="SemiBold" VerticalAlignment="Center" />
+                  <TextBlock Grid.Column="1" Classes="mono" Text="{Binding Arguments}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,14,0" />
+                  <StackPanel Grid.Column="2" Spacing="4" VerticalAlignment="Center" Margin="0,0,12,0">
+                    <TextBlock Text="{Binding SuccessText}" FontWeight="SemiBold" FontSize="13" />
+                    <ProgressBar Classes="score" Classes.good="{Binding IsGood}" Classes.mid="{Binding IsMid}" Minimum="0" Maximum="100" Value="{Binding Percent}" />
+                  </StackPanel>
+                  <TextBlock Grid.Column="3" Classes="caption" Text="{Binding TimeText}" VerticalAlignment="Center" />
+                  <Button Grid.Column="4" Classes="soft" Command="{Binding ApplyCommand}" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                      <PathIcon Data="{StaticResource Icon.Check}" Width="14" Height="14" />
+                      <TextBlock Text="Применить" FontSize="13" />
+                    </StackPanel>
+                  </Button>
+                </Grid>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+    </ScrollViewer>
+  </Grid>
+</UserControl>

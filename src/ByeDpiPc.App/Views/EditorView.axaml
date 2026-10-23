@@ -1,0 +1,171 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:ByeDpiPc.App.ViewModels"
+             x:Class="ByeDpiPc.App.Views.EditorView"
+             x:DataType="vm:EditorViewModel">
+  <UserControl.Styles>
+    <Style Selector="CheckBox">
+      <Setter Property="Margin" Value="0,0,18,0" />
+    </Style>
+    <Style Selector="NumericUpDown">
+      <Setter Property="Width" Value="130" />
+      <Setter Property="FormatString" Value="0" />
+    </Style>
+  </UserControl.Styles>
+
+  <ScrollViewer>
+    <StackPanel Margin="32,26,32,28" Spacing="16">
+      <StackPanel Spacing="4">
+        <TextBlock Classes="h1" Text="Стратегия обхода" />
+        <TextBlock Classes="muted" TextWrapping="Wrap"
+                   Text="Стратегия — это аргументы byedpi: как «запутать» первые пакеты соединения, чтобы фильтр провайдера не увидел адрес сайта. Можно хранить несколько стратегий и переключаться между ними на главной." />
+      </StackPanel>
+
+      <!-- Профили -->
+      <Border Classes="card">
+        <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
+          <Grid ColumnDefinitions="Auto,*" Margin="0,0,12,0">
+            <TextBlock Text="Профиль" Classes="muted" VerticalAlignment="Center" Margin="0,0,12,0" />
+            <ComboBox Grid.Column="1" ItemsSource="{Binding Profiles}" SelectedItem="{Binding SelectedProfile}" HorizontalAlignment="Stretch" />
+          </Grid>
+          <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
+            <Button Classes="icon" Command="{Binding NewProfileCommand}" ToolTip.Tip="Новая стратегия"><PathIcon Data="{StaticResource Icon.Plus}" /></Button>
+            <Button Classes="icon" Command="{Binding DuplicateCommand}" ToolTip.Tip="Копия"><PathIcon Data="{StaticResource Icon.ContentCopy}" /></Button>
+            <Button Classes="icon" Command="{Binding DeleteCommand}" ToolTip.Tip="Удалить"><PathIcon Data="{StaticResource Icon.DeleteOutline}" /></Button>
+          </StackPanel>
+          <Grid Grid.Row="1" Grid.ColumnSpan="2" ColumnDefinitions="Auto,*,Auto" Margin="0,12,0,0">
+            <TextBlock Text="Название" Classes="muted" VerticalAlignment="Center" Margin="0,0,12,0" />
+            <TextBox Grid.Column="1" Text="{Binding ProfileName}" />
+            <Border Grid.Column="2" Classes="chip" Background="{DynamicResource SuccessSoftBrush}" Margin="12,0,0,0" IsVisible="{Binding IsActive}" VerticalAlignment="Center">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <PathIcon Data="{StaticResource Icon.CheckCircle}" Foreground="{DynamicResource SuccessBrush}" Width="14" Height="14" />
+                <TextBlock Text="используется" Foreground="{DynamicResource SuccessBrush}" FontSize="12" FontWeight="Medium" />
+              </StackPanel>
+            </Border>
+          </Grid>
+        </Grid>
+      </Border>
+
+      <!-- Переключатель режима -->
+      <Border Classes="segments">
+        <StackPanel Orientation="Horizontal">
+          <RadioButton Classes="segment" GroupName="mode" Content="Простой режим" IsChecked="{Binding IsSimpleMode}" Command="{Binding SimpleModeCommand}" />
+          <RadioButton Classes="segment" GroupName="mode" Content="Командная строка" IsChecked="{Binding !IsSimpleMode}" Command="{Binding CommandModeCommand}" />
+        </StackPanel>
+      </Border>
+
+      <Border Classes="banner warning" IsVisible="{Binding !SimpleAvailable}">
+        <TextBlock TextWrapping="Wrap" Text="Эта стратегия сложная (несколько групп --auto или редкие параметры), поэтому простой режим для неё недоступен. Редактируйте её в командной строке." />
+      </Border>
+
+      <!-- Простой режим -->
+      <Border Classes="card appear" IsVisible="{Binding IsSimpleMode}">
+        <StackPanel Spacing="18">
+          <StackPanel Spacing="8">
+            <TextBlock Classes="h3" Text="Способ запутывания" />
+            <ComboBox ItemsSource="{Binding Methods}" SelectedIndex="{Binding MethodIndex}" Width="360" />
+            <WrapPanel IsVisible="{Binding HasMethod}">
+              <StackPanel Spacing="4" Margin="0,4,18,0">
+                <TextBlock Classes="caption" Text="Позиция разбиения" />
+                <NumericUpDown Value="{Binding SplitPosition}" Minimum="-500" Maximum="2000" />
+              </StackPanel>
+              <CheckBox IsChecked="{Binding SplitAtSni}" Content="Считать от начала SNI/Host (+s)" VerticalAlignment="Bottom" ToolTip.Tip="Позиция отсчитывается от начала имени сайта в пакете" />
+            </WrapPanel>
+            <WrapPanel IsVisible="{Binding IsFake}">
+              <StackPanel Spacing="4" Margin="0,4,18,0">
+                <TextBlock Classes="caption" Text="TTL фейкового пакета" />
+                <NumericUpDown Value="{Binding FakeTtl}" Minimum="1" Maximum="64" />
+              </StackPanel>
+              <CheckBox IsChecked="{Binding UseFakeSni}" Content="Подменять SNI в фейке" VerticalAlignment="Bottom" />
+            </WrapPanel>
+            <StackPanel Spacing="4" IsVisible="{Binding IsOob}" Margin="0,4,0,0">
+              <TextBlock Classes="caption" Text="OOB-байт (по умолчанию «a»)" />
+              <TextBox Text="{Binding OobChar}" Width="80" HorizontalAlignment="Left" MaxLength="1" />
+            </StackPanel>
+          </StackPanel>
+
+          <Separator Background="{DynamicResource BorderBrush}" />
+
+          <StackPanel Spacing="8">
+            <CheckBox IsChecked="{Binding TlsRec}" Content="Разбить TLS-запись (tlsrec)" FontWeight="SemiBold" ToolTip.Tip="Делит ClientHello на две TLS-записи — помогает против большинства DPI" />
+            <WrapPanel IsVisible="{Binding TlsRec}">
+              <StackPanel Spacing="4" Margin="0,0,18,0">
+                <TextBlock Classes="caption" Text="Позиция" />
+                <NumericUpDown Value="{Binding TlsRecPosition}" Minimum="-500" Maximum="2000" />
+              </StackPanel>
+              <CheckBox IsChecked="{Binding TlsRecAtSni}" Content="Относительно SNI" VerticalAlignment="Bottom" />
+              <CheckBox IsChecked="{Binding TlsRecFromEnd}" Content="От конца SNI (+se)" VerticalAlignment="Bottom" IsEnabled="{Binding TlsRecAtSni}" />
+            </WrapPanel>
+          </StackPanel>
+
+          <Separator Background="{DynamicResource BorderBrush}" />
+
+          <StackPanel Spacing="8">
+            <TextBlock Classes="h3" Text="HTTP-заголовок" />
+            <WrapPanel>
+              <CheckBox IsChecked="{Binding HostMixedCase}" Content="hOsT: — смешанный регистр" />
+              <CheckBox IsChecked="{Binding DomainMixedCase}" Content="Домен в смешанном регистре" />
+              <CheckBox IsChecked="{Binding HostRemoveSpaces}" Content="Убрать пробел после Host:" />
+            </WrapPanel>
+          </StackPanel>
+
+          <Separator Background="{DynamicResource BorderBrush}" />
+
+          <StackPanel Spacing="8">
+            <TextBlock Classes="h3" Text="Дополнительно" />
+            <WrapPanel>
+              <CheckBox IsChecked="{Binding DesyncHttp}" Content="HTTP" />
+              <CheckBox IsChecked="{Binding DesyncHttps}" Content="HTTPS (TLS)" />
+              <CheckBox IsChecked="{Binding DesyncUdp}" Content="UDP" />
+              <CheckBox IsChecked="{Binding AutoOnBlock}" Content="Только при признаках блокировки (--auto)" ToolTip.Tip="Запутывание включается, только если соединение сбросили или не дождались ответа" />
+            </WrapPanel>
+            <WrapPanel>
+              <StackPanel Spacing="4" Margin="0,0,18,0">
+                <TextBlock Classes="caption" Text="Фейковых UDP-пакетов" />
+                <NumericUpDown Value="{Binding UdpFakeCount}" Minimum="0" Maximum="20" />
+              </StackPanel>
+              <StackPanel Spacing="4" Margin="0,0,18,0">
+                <TextBlock Classes="caption" Text="TTL всех пакетов (0 — не менять)" />
+                <NumericUpDown Value="{Binding DefaultTtl}" Minimum="0" Maximum="255" />
+              </StackPanel>
+              <StackPanel Spacing="4">
+                <TextBlock Classes="caption" Text="SNI для фейков ({sni})" />
+                <TextBox Text="{Binding FakeSni}" Width="200" />
+              </StackPanel>
+            </WrapPanel>
+          </StackPanel>
+        </StackPanel>
+      </Border>
+
+      <!-- Командная строка / итог -->
+      <Border Classes="card">
+        <StackPanel Spacing="10">
+          <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Classes="h3" Text="Аргументы byedpi" VerticalAlignment="Center" />
+            <Button Grid.Column="1" Classes="link" Content="Справка по ключам" Command="{Binding OpenHelpCommand}" />
+          </Grid>
+          <TextBox Classes="mono" Text="{Binding Arguments}" AcceptsReturn="False" TextWrapping="Wrap" MinHeight="64"
+                   IsReadOnly="{Binding IsSimpleMode}" Background="{DynamicResource CodeBgBrush}" />
+          <Border Classes="banner appear" Classes.success="{Binding ValidationOk}" Classes.danger="{Binding !ValidationOk}"
+                  IsVisible="{Binding Validation, Converter={x:Static ObjectConverters.IsNotNull}}">
+            <TextBlock Text="{Binding Validation}" TextWrapping="Wrap" />
+          </Border>
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button Classes="accent" Command="{Binding SaveCommand}" IsEnabled="{Binding IsDirty}">
+              <StackPanel Orientation="Horizontal" Spacing="8"><PathIcon Data="{StaticResource Icon.Check}" /><TextBlock Text="Сохранить" /></StackPanel>
+            </Button>
+            <Button Classes="soft" Command="{Binding MakeActiveCommand}" IsVisible="{Binding !IsActive}">
+              <StackPanel Orientation="Horizontal" Spacing="8"><PathIcon Data="{StaticResource Icon.StarOutline}" /><TextBlock Text="Использовать" /></StackPanel>
+            </Button>
+            <Button Classes="soft" Command="{Binding ValidateCommand}" IsEnabled="{Binding !IsValidating}">
+              <StackPanel Orientation="Horizontal" Spacing="8"><PathIcon Data="{StaticResource Icon.ShieldCheckOutline}" /><TextBlock Text="Проверить запуск" /></StackPanel>
+            </Button>
+            <Button Classes="ghost" Command="{Binding RevertCommand}" IsVisible="{Binding IsDirty}">
+              <StackPanel Orientation="Horizontal" Spacing="8"><PathIcon Data="{StaticResource Icon.Restore}" /><TextBlock Text="Отменить изменения" /></StackPanel>
+            </Button>
+          </StackPanel>
+        </StackPanel>
+      </Border>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

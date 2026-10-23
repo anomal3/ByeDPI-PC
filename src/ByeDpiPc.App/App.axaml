@@ -1,0 +1,32 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="ByeDpiPc.App.App"
+             Name="ByeDPI PC"
+             RequestedThemeVariant="Default">
+
+  <Application.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceInclude Source="avares://ByeDPI-PC/Styles/Theme.axaml" />
+        <ResourceInclude Source="avares://ByeDPI-PC/Styles/Icons.axaml" />
+        <ResourceInclude Source="avares://ByeDPI-PC/Styles/BrandIcons.axaml" />
+      </ResourceDictionary.MergedDictionaries>
+    </ResourceDictionary>
+  </Application.Resources>
+
+  <Application.Styles>
+    <FluentTheme>
+      <FluentTheme.Palettes>
+        <ColorPaletteResources x:Key="Light" Accent="#3366FF" RegionColor="#FFFFFF" />
+        <ColorPaletteResources x:Key="Dark" Accent="#6690FF" RegionColor="#181B23" />
+      </FluentTheme.Palettes>
+    </FluentTheme>
+    <StyleInclude Source="avares://ByeDPI-PC/Styles/Controls.axaml" />
+  </Application.Styles>
+
+  <TrayIcon.Icons>
+    <TrayIcons>
+      <TrayIcon ToolTipText="ByeDPI PC" Icon="avares://ByeDPI-PC/Assets/tray-off.ico" />
+    </TrayIcons>
+  </TrayIcon.Icons>
+</Application>

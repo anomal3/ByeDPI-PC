@@ -1,0 +1,57 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:ByeDpiPc.App.ViewModels"
+             x:Class="ByeDpiPc.App.Views.AppPickerView"
+             x:DataType="vm:AppPickerViewModel"
+             Width="560" Height="540">
+  <Grid RowDefinitions="Auto,Auto,*,Auto">
+    <Grid ColumnDefinitions="*,Auto" Margin="22,18,14,8">
+      <TextBlock Classes="h2" Text="{Binding Title}" VerticalAlignment="Center" />
+      <Button Grid.Column="1" Classes="icon" Command="{Binding CloseCommand}">
+        <PathIcon Data="{StaticResource Icon.Close}" />
+      </Button>
+    </Grid>
+    <TextBox Grid.Row="1" Margin="22,0,22,10" Text="{Binding Search}" Watermark="Поиск">
+      <TextBox.InnerLeftContent>
+        <PathIcon Data="{StaticResource Icon.Magnify}" Width="16" Height="16" Margin="10,0,0,0" Foreground="{DynamicResource MutedBrush}" />
+      </TextBox.InnerLeftContent>
+    </TextBox>
+    <Panel Grid.Row="2">
+      <StackPanel IsVisible="{Binding IsLoading}" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10">
+        <PathIcon Classes="spin" Data="{StaticResource Icon.Refresh}" Width="26" Height="26" Foreground="{DynamicResource AccentBrush}" />
+        <TextBlock Classes="muted" Text="Ищу программы…" />
+      </StackPanel>
+      <ListBox ItemsSource="{Binding Items}" Background="Transparent" Margin="12,0" IsVisible="{Binding !IsLoading}">
+        <ListBox.ItemTemplate>
+          <DataTemplate x:DataType="vm:PickerItem">
+            <Grid ColumnDefinitions="Auto,Auto,*">
+              <CheckBox IsChecked="{Binding IsChecked}" MinWidth="0" Margin="0,0,6,0" />
+              <Panel Grid.Column="1" Width="24" Height="24" Margin="0,0,12,0">
+                <PathIcon Data="{StaticResource Brand.app}" Foreground="{DynamicResource MutedBrush}" Width="20" Height="20" IsVisible="{Binding !HasIcon}" />
+                <Image Source="{Binding Icon}" Width="24" Height="24" IsVisible="{Binding HasIcon}" />
+              </Panel>
+              <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                <TextBlock Text="{Binding Name}" FontWeight="Medium" TextTrimming="CharacterEllipsis" />
+                <TextBlock Classes="caption" Text="{Binding Process}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Path}" />
+              </StackPanel>
+            </Grid>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+    </Panel>
+    <Border Grid.Row="3" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0" Padding="22,12">
+      <Grid ColumnDefinitions="*,Auto,Auto">
+        <TextBlock Classes="muted" VerticalAlignment="Center">
+          <Run Text="Выбрано: " /><Run Text="{Binding SelectedCount}" FontWeight="SemiBold" />
+        </TextBlock>
+        <Button Grid.Column="1" Classes="ghost" Content="Отмена" Command="{Binding CloseCommand}" Margin="0,0,8,0" />
+        <Button Grid.Column="2" Classes="accent" Command="{Binding AddSelectedCommand}">
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <PathIcon Data="{StaticResource Icon.Check}" />
+            <TextBlock Text="Добавить" />
+          </StackPanel>
+        </Button>
+      </Grid>
+    </Border>
+  </Grid>
+</UserControl>

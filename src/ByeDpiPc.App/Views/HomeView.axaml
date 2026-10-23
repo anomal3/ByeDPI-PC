@@ -1,0 +1,281 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:ByeDpiPc.App.ViewModels"
+             x:Class="ByeDpiPc.App.Views.HomeView"
+             x:DataType="vm:HomeViewModel">
+
+  <UserControl.Styles>
+    <!-- Большая кнопка: серый → жёлтый (подключение) → зелёный; красный при ошибке -->
+    <Style Selector="Button.power">
+      <Setter Property="Width" Value="150" />
+      <Setter Property="Height" Value="150" />
+      <Setter Property="HorizontalAlignment" Value="Center" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="Background" Value="{DynamicResource IdleBrush}" />
+      <Setter Property="Foreground" Value="White" />
+      <Setter Property="Cursor" Value="Hand" />
+      <Setter Property="Template">
+        <ControlTemplate>
+          <Panel>
+            <Ellipse Name="disc" Fill="{TemplateBinding Background}" />
+            <Border CornerRadius="75">
+              <Border.Background>
+                <LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
+                  <GradientStop Offset="0" Color="#38FFFFFF" />
+                  <GradientStop Offset="0.55" Color="#00FFFFFF" />
+                </LinearGradientBrush>
+              </Border.Background>
+            </Border>
+            <ContentPresenter Content="{TemplateBinding Content}" Foreground="{TemplateBinding Foreground}"
+                              HorizontalAlignment="Center" VerticalAlignment="Center" />
+          </Panel>
+        </ControlTemplate>
+      </Setter>
+      <Setter Property="Transitions">
+        <Transitions>
+          <BrushTransition Property="Background" Duration="0:0:0.45" />
+          <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.16" Easing="CubicEaseOut" />
+        </Transitions>
+      </Setter>
+    </Style>
+    <Style Selector="Button.power:pointerover"><Setter Property="RenderTransform" Value="scale(1.04)" /></Style>
+    <Style Selector="Button.power:pressed"><Setter Property="RenderTransform" Value="scale(0.95)" /></Style>
+    <Style Selector="Grid.power.on Button.power"><Setter Property="Background" Value="{DynamicResource SuccessBrush}" /></Style>
+    <Style Selector="Grid.power.busy Button.power"><Setter Property="Background" Value="{DynamicResource WarningBrush}" /></Style>
+    <Style Selector="Grid.power.error Button.power"><Setter Property="Background" Value="{DynamicResource DangerBrush}" /></Style>
+
+    <Style Selector="Ellipse.halo">
+      <Setter Property="Fill" Value="{DynamicResource Surface2Brush}" />
+      <Setter Property="Transitions">
+        <Transitions><BrushTransition Property="Fill" Duration="0:0:0.45" /></Transitions>
+      </Setter>
+    </Style>
+    <Style Selector="Grid.power.on Ellipse.halo"><Setter Property="Fill" Value="{DynamicResource SuccessSoftBrush}" /></Style>
+    <Style Selector="Grid.power.busy Ellipse.halo"><Setter Property="Fill" Value="{DynamicResource WarningSoftBrush}" /></Style>
+    <Style Selector="Grid.power.error Ellipse.halo"><Setter Property="Fill" Value="{DynamicResource DangerSoftBrush}" /></Style>
+
+    <!-- Расходящиеся волны, когда обход работает -->
+    <Style Selector="Ellipse.pulse">
+      <Setter Property="Stroke" Value="{DynamicResource SuccessBrush}" />
+      <Setter Property="StrokeThickness" Value="2" />
+      <Setter Property="Opacity" Value="0" />
+    </Style>
+    <Style Selector="Grid.power.on Ellipse.pulse">
+      <Style.Animations>
+        <Animation Duration="0:0:2.4" IterationCount="INFINITE" Easing="CubicEaseOut">
+          <KeyFrame Cue="0%"><Setter Property="Opacity" Value="0.6" /><Setter Property="ScaleTransform.ScaleX" Value="1" /><Setter Property="ScaleTransform.ScaleY" Value="1" /></KeyFrame>
+          <KeyFrame Cue="100%"><Setter Property="Opacity" Value="0" /><Setter Property="ScaleTransform.ScaleX" Value="1.45" /><Setter Property="ScaleTransform.ScaleY" Value="1.45" /></KeyFrame>
+        </Animation>
+      </Style.Animations>
+    </Style>
+    <Style Selector="Grid.power.on Ellipse.pulse.late">
+      <Style.Animations>
+        <Animation Duration="0:0:2.4" Delay="0:0:1.2" IterationCount="INFINITE" Easing="CubicEaseOut">
+          <KeyFrame Cue="0%"><Setter Property="Opacity" Value="0.6" /><Setter Property="ScaleTransform.ScaleX" Value="1" /><Setter Property="ScaleTransform.ScaleY" Value="1" /></KeyFrame>
+          <KeyFrame Cue="100%"><Setter Property="Opacity" Value="0" /><Setter Property="ScaleTransform.ScaleX" Value="1.45" /><Setter Property="ScaleTransform.ScaleY" Value="1.45" /></KeyFrame>
+        </Animation>
+      </Style.Animations>
+    </Style>
+
+    <Style Selector="Arc.spinner">
+      <Setter Property="Stroke" Value="{DynamicResource WarningBrush}" />
+    </Style>
+    <Style Selector="Grid.power.on Arc.spinner">
+      <Setter Property="Stroke" Value="{DynamicResource AccentBrush}" />
+    </Style>
+
+    <Style Selector="TextBlock.status">
+      <Setter Property="FontSize" Value="28" />
+      <Setter Property="FontWeight" Value="Bold" />
+      <Setter Property="Transitions">
+        <Transitions><BrushTransition Property="Foreground" Duration="0:0:0.3" /></Transitions>
+      </Setter>
+    </Style>
+    <Style Selector="TextBlock.status.on"><Setter Property="Foreground" Value="{DynamicResource SuccessBrush}" /></Style>
+    <Style Selector="TextBlock.status.busy"><Setter Property="Foreground" Value="{DynamicResource WarningBrush}" /></Style>
+    <Style Selector="TextBlock.status.error"><Setter Property="Foreground" Value="{DynamicResource DangerBrush}" /></Style>
+  </UserControl.Styles>
+
+  <ScrollViewer>
+    <StackPanel Margin="32,26,32,32" Spacing="18">
+      <StackPanel Spacing="4">
+        <TextBlock Classes="h1" Text="Главная" />
+        <TextBlock Classes="muted" Text="Сайты и приложения открываются через локальный обход DPI. Трафик не шифруется и никуда не уходит — это не VPN." TextWrapping="Wrap" />
+      </StackPanel>
+
+      <!-- Главная карточка с кнопкой -->
+      <Border Classes="card" Padding="26,22">
+        <Grid ColumnDefinitions="Auto,*">
+          <Grid Classes="power" Width="230" Height="230" Margin="0,0,28,0"
+                Classes.on="{Binding IsOn}" Classes.busy="{Binding IsBusy}" Classes.error="{Binding IsError}">
+            <Ellipse Classes="halo" Width="200" Height="200" />
+            <Ellipse Classes="pulse" Width="150" Height="150" />
+            <Ellipse Classes="pulse late" Width="150" Height="150" />
+            <Arc Classes="spinner spin" Width="182" Height="182" StartAngle="0" SweepAngle="90"
+                 StrokeThickness="4" StrokeLineCap="Round" IsVisible="{Binding IsSpinning}" />
+            <Button Classes="power" Command="{Binding ToggleCommand}" ToolTip.Tip="{Binding ButtonHint}" AutomationProperties.Name="{Binding ButtonHint}">
+              <StackPanel Spacing="4" HorizontalAlignment="Center">
+                <PathIcon Data="{StaticResource Icon.Power}" Width="52" Height="52" Foreground="White" />
+              </StackPanel>
+            </Button>
+          </Grid>
+
+          <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="14">
+            <StackPanel Spacing="4">
+              <TextBlock Classes="status" Text="{Binding StatusTitle}"
+                         Classes.on="{Binding IsOn}" Classes.busy="{Binding IsBusy}" Classes.error="{Binding IsError}" />
+              <TextBlock Classes="muted" Text="{Binding StatusSubtitle}" TextWrapping="Wrap" />
+            </StackPanel>
+
+            <!-- Ошибка с кнопкой «Что делать» -->
+            <Border Classes="banner danger appear" IsVisible="{Binding IsError}">
+              <StackPanel Spacing="8">
+                <Grid ColumnDefinitions="Auto,*,Auto">
+                  <PathIcon Data="{StaticResource Icon.AlertOutline}" Foreground="{DynamicResource DangerBrush}" Width="18" Height="18" Margin="0,0,10,0" />
+                  <TextBlock Grid.Column="1" Text="{Binding ErrorMessage}" TextWrapping="Wrap" FontWeight="Medium" VerticalAlignment="Center" />
+                  <Button Grid.Column="2" Classes="link" Content="Что делать?" Command="{Binding ToggleAdviceCommand}" Margin="10,0,0,0" />
+                </Grid>
+                <TextBlock Text="{Binding ErrorAdvice}" TextWrapping="Wrap" IsVisible="{Binding ShowAdvice}" Classes="muted" />
+              </StackPanel>
+            </Border>
+            <Border Classes="banner warning" IsVisible="{Binding Warning, Converter={x:Static ObjectConverters.IsNotNull}}">
+              <TextBlock Text="{Binding Warning}" TextWrapping="Wrap" />
+            </Border>
+
+            <UniformGrid Columns="2" Rows="2">
+              <Border Classes="soft" Margin="0,0,6,6">
+                <StackPanel Spacing="2">
+                  <TextBlock Classes="caption" Text="Режим" />
+                  <TextBlock Text="{Binding ModeText}" FontWeight="SemiBold" />
+                  <TextBlock Classes="caption" Text="{Binding ModeHint}" TextTrimming="CharacterEllipsis" />
+                </StackPanel>
+              </Border>
+              <Border Classes="soft" Margin="6,0,0,6">
+                <StackPanel Spacing="2">
+                  <TextBlock Classes="caption" Text="Локальный прокси" />
+                  <TextBlock Text="{Binding ProxyAddress}" FontWeight="SemiBold" FontFamily="{StaticResource MonoFont}" />
+                  <TextBlock Classes="caption" Text="SOCKS5 · только этот компьютер" />
+                </StackPanel>
+              </Border>
+              <Border Classes="soft" Margin="0,6,6,0">
+                <StackPanel Spacing="4">
+                  <TextBlock Classes="caption" Text="Стратегия" />
+                  <ComboBox ItemsSource="{Binding StrategyNames}" SelectedItem="{Binding SelectedStrategy}"
+                            HorizontalAlignment="Stretch" MinHeight="30" Padding="10,4" />
+                </StackPanel>
+              </Border>
+              <Button Classes="soft" Margin="6,6,0,0" Padding="12,10" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                      VerticalAlignment="Stretch" FontWeight="Normal"
+                      Command="{Binding GoCommand}" CommandParameter="{x:Static vm:PageKind.Apps}">
+                <Grid ColumnDefinitions="*,Auto">
+                  <StackPanel Spacing="2">
+                    <TextBlock Classes="caption" Text="Включено правил" />
+                    <TextBlock Text="{Binding RulesText}" FontWeight="SemiBold" />
+                    <TextBlock Classes="caption" Text="{Binding FilterText}" TextTrimming="CharacterEllipsis" />
+                  </StackPanel>
+                  <PathIcon Grid.Column="1" Data="{StaticResource Icon.ChevronRight}" Foreground="{DynamicResource MutedBrush}" />
+                </Grid>
+              </Button>
+            </UniformGrid>
+          </StackPanel>
+        </Grid>
+      </Border>
+
+      <!-- Автоподбор -->
+      <Border Classes="card">
+        <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto">
+          <Border Width="40" Height="40" CornerRadius="12" Background="{DynamicResource AccentSoftBrush}" Margin="0,0,14,0" VerticalAlignment="Top">
+            <Panel>
+              <PathIcon Data="{StaticResource Icon.RocketLaunchOutline}" Foreground="{DynamicResource AccentBrush}" IsVisible="{Binding !Host.IsTuning}" />
+              <PathIcon Classes="spin" Data="{StaticResource Icon.Refresh}" Foreground="{DynamicResource AccentBrush}" IsVisible="{Binding Host.IsTuning}" />
+            </Panel>
+          </Border>
+          <StackPanel Grid.Column="1" Spacing="4" VerticalAlignment="Center">
+            <TextBlock Classes="h3" Text="Автоподбор стратегии" />
+            <TextBlock Classes="muted" Text="{Binding TuneSummary}" TextWrapping="Wrap" />
+          </StackPanel>
+          <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" Margin="12,0,0,0">
+            <Button Classes="soft" Command="{Binding TuneNowCommand}" IsVisible="{Binding !Host.IsTuning}" ToolTip.Tip="Проверить, открываются ли заблокированные сайты через текущую стратегию">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <PathIcon Data="{StaticResource Icon.ShieldCheckOutline}" />
+                <TextBlock Text="Проверить обход" />
+              </StackPanel>
+            </Button>
+            <Button Classes="accent" Command="{Binding SearchNowCommand}" IsVisible="{Binding !Host.IsTuning}" ToolTip.Tip="Перебрать стратегии и выбрать лучшую для вашего провайдера">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <PathIcon Data="{StaticResource Icon.FlaskOutline}" />
+                <TextBlock Text="Подобрать" />
+              </StackPanel>
+            </Button>
+            <Button Classes="danger" Command="{Binding CancelTuneCommand}" IsVisible="{Binding Host.IsTuning}">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <PathIcon Data="{StaticResource Icon.Stop}" />
+                <TextBlock Text="Остановить" />
+              </StackPanel>
+            </Button>
+          </StackPanel>
+          <ProgressBar Grid.Row="1" Grid.ColumnSpan="3" Margin="0,14,0,0" IsVisible="{Binding Host.IsTuning}"
+                       IsIndeterminate="{Binding !Host.TuneHasProgress}" Minimum="0" Maximum="1" Value="{Binding Host.TuneProgress}" />
+        </Grid>
+      </Border>
+
+      <!-- Что идёт через обход -->
+      <Border Classes="card">
+        <StackPanel Spacing="12">
+          <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Classes="h3" Text="Включённые правила" VerticalAlignment="Center" />
+            <Button Grid.Column="1" Classes="link" Command="{Binding GoCommand}" CommandParameter="{x:Static vm:PageKind.Apps}">
+              <StackPanel Orientation="Horizontal" Spacing="4">
+                <TextBlock Text="Настроить" />
+                <PathIcon Data="{StaticResource Icon.ChevronRight}" Width="14" Height="14" />
+              </StackPanel>
+            </Button>
+          </Grid>
+          <ItemsControl ItemsSource="{Binding ActiveRules}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:RuleChip">
+                <Border Classes="chip" Margin="0,0,8,8" ToolTip.Tip="{Binding Tip}">
+                  <StackPanel Orientation="Horizontal" Spacing="7">
+                    <Panel Width="16" Height="16">
+                      <PathIcon Data="{Binding Icon}" Foreground="{Binding Color}" Width="15" Height="15" IsVisible="{Binding !HasBitmap}" />
+                      <Image Source="{Binding Bitmap}" Width="16" Height="16" IsVisible="{Binding HasBitmap}" />
+                    </Panel>
+                    <TextBlock Text="{Binding Name}" FontSize="13" VerticalAlignment="Center" />
+                  </StackPanel>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </Border>
+
+      <!-- Быстрые плитки -->
+      <UniformGrid Columns="3">
+        <Button Classes="tile" Margin="0,0,8,0" Command="{Binding GoCommand}" CommandParameter="{x:Static vm:PageKind.Apps}">
+          <StackPanel Spacing="8">
+            <PathIcon Data="{StaticResource Icon.Plus}" Foreground="{DynamicResource AccentBrush}" Width="20" Height="20" HorizontalAlignment="Left" />
+            <TextBlock Classes="h3" Text="Добавить приложение" />
+            <TextBlock Classes="caption" Text="Любой .exe, запущенные программы или свой набор доменов" TextWrapping="Wrap" />
+          </StackPanel>
+        </Button>
+        <Button Classes="tile" Margin="4,0" Command="{Binding GoCommand}" CommandParameter="{x:Static vm:PageKind.Tester}">
+          <StackPanel Spacing="8">
+            <PathIcon Data="{StaticResource Icon.FlaskOutline}" Foreground="{DynamicResource AccentBrush}" Width="20" Height="20" HorizontalAlignment="Left" />
+            <TextBlock Classes="h3" Text="Таблица стратегий" />
+            <TextBlock Classes="caption" Text="Подробный подбор с процентом успеха по каждой стратегии" TextWrapping="Wrap" />
+          </StackPanel>
+        </Button>
+        <Button Classes="tile" Margin="8,0,0,0" Command="{Binding GoCommand}" CommandParameter="{x:Static vm:PageKind.Logs}">
+          <StackPanel Spacing="8">
+            <PathIcon Data="{StaticResource Icon.MonitorDashboard}" Foreground="{DynamicResource AccentBrush}" Width="20" Height="20" HorizontalAlignment="Left" />
+            <TextBlock Classes="h3" Text="Логи и диагностика" />
+            <TextBlock Classes="caption" Text="Что происходит и почему не открывается сайт" TextWrapping="Wrap" />
+          </StackPanel>
+        </Button>
+      </UniformGrid>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

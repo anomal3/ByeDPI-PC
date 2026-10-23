@@ -1,0 +1,265 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:ByeDpiPc.App.ViewModels"
+             x:Class="ByeDpiPc.App.Views.SettingsView"
+             x:DataType="vm:SettingsViewModel">
+  <UserControl.Styles>
+    <Style Selector="Grid.row">
+      <Setter Property="Margin" Value="0,8" />
+    </Style>
+    <Style Selector="Grid.row > ToggleSwitch">
+      <Setter Property="OnContent" Value="" />
+      <Setter Property="OffContent" Value="" />
+      <Setter Property="MinWidth" Value="0" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Border.mode">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="1.5" />
+      <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+      <Setter Property="CornerRadius" Value="12" />
+      <Setter Property="Padding" Value="14,12" />
+      <Setter Property="Transitions">
+        <Transitions>
+          <BrushTransition Property="BorderBrush" Duration="0:0:0.2" />
+          <BrushTransition Property="Background" Duration="0:0:0.2" />
+        </Transitions>
+      </Setter>
+    </Style>
+    <Style Selector="RadioButton:checked /template/ Border.mode">
+      <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+      <Setter Property="Background" Value="{DynamicResource AccentSoftBrush}" />
+    </Style>
+  </UserControl.Styles>
+
+  <ScrollViewer>
+    <StackPanel Margin="32,26,32,32" Spacing="16" MaxWidth="900" HorizontalAlignment="Stretch">
+      <TextBlock Classes="h1" Text="Настройки" />
+
+      <!-- Режим работы -->
+      <Border Classes="card">
+        <StackPanel Spacing="12">
+          <TextBlock Classes="h2" Text="Режим работы" />
+          <Grid ColumnDefinitions="*,*">
+            <RadioButton GroupName="engine" IsChecked="{Binding ModeTun}" Margin="0,0,6,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="0">
+              <RadioButton.Template>
+                <ControlTemplate>
+                  <Border Classes="mode" Cursor="Hand">
+                    <StackPanel Spacing="4">
+                      <StackPanel Orientation="Horizontal" Spacing="8">
+                        <PathIcon Data="{StaticResource Icon.LanConnect}" Foreground="{DynamicResource AccentBrush}" />
+                        <TextBlock Text="TUN — все программы" FontWeight="SemiBold" />
+                        <Border Classes="chip" Background="{DynamicResource AccentBrush}" Padding="7,1">
+                          <TextBlock Text="рекомендуется" Foreground="White" FontSize="11" />
+                        </Border>
+                      </StackPanel>
+                      <TextBlock Classes="caption" TextWrapping="Wrap"
+                                 Text="Виртуальный адаптер sing-box: правила работают для любых программ (Telegram, Discord, игры) и доменов. Нужны права администратора." />
+                    </StackPanel>
+                  </Border>
+                </ControlTemplate>
+              </RadioButton.Template>
+            </RadioButton>
+            <RadioButton Grid.Column="1" GroupName="engine" IsChecked="{Binding ModeProxy}" Margin="6,0,0,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="0">
+              <RadioButton.Template>
+                <ControlTemplate>
+                  <Border Classes="mode" Cursor="Hand">
+                    <StackPanel Spacing="4">
+                      <StackPanel Orientation="Horizontal" Spacing="8">
+                        <PathIcon Data="{StaticResource Icon.Web}" Foreground="{DynamicResource AccentBrush}" />
+                        <TextBlock Text="Только прокси" FontWeight="SemiBold" />
+                      </StackPanel>
+                      <TextBlock Classes="caption" TextWrapping="Wrap"
+                                 Text="Без драйверов и прав администратора. Работает в браузерах и программах, где можно указать SOCKS5-прокси." />
+                    </StackPanel>
+                  </Border>
+                </ControlTemplate>
+              </RadioButton.Template>
+            </RadioButton>
+          </Grid>
+          <StackPanel IsVisible="{Binding ModeProxy}" Classes="appear">
+            <Grid Classes="row" ColumnDefinitions="*,Auto">
+              <StackPanel>
+                <TextBlock Text="Прописать системный прокси" />
+                <TextBlock Classes="caption" Text="Браузеры начнут ходить через обход автоматически. При отключении всё вернётся как было." TextWrapping="Wrap" />
+              </StackPanel>
+              <ToggleSwitch Grid.Column="1" IsChecked="{Binding SetSystemProxy}" />
+            </Grid>
+            <Grid Classes="row" ColumnDefinitions="*,Auto" IsEnabled="{Binding SetSystemProxy}">
+              <StackPanel>
+                <TextBlock Text="Только сайты из правил (PAC)" />
+                <TextBlock Classes="caption" Text="Через обход пойдут только домены из «Приложений» и «Списков», остальные сайты — напрямую." TextWrapping="Wrap" />
+              </StackPanel>
+              <ToggleSwitch Grid.Column="1" IsChecked="{Binding UsePac}" />
+            </Grid>
+          </StackPanel>
+        </StackPanel>
+      </Border>
+
+      <!-- Запуск -->
+      <Border Classes="card">
+        <StackPanel>
+          <TextBlock Classes="h2" Text="Запуск и работа в фоне" Margin="0,0,0,6" />
+          <Grid Classes="row" ColumnDefinitions="*,Auto">
+            <StackPanel>
+              <TextBlock Text="Запускать вместе с системой" />
+              <TextBlock Classes="caption" TextWrapping="Wrap"
+                         Text="На Windows создаётся задача Планировщика с правами администратора — режим TUN поднимается без запросов UAC." />
+            </StackPanel>
+            <ToggleSwitch Grid.Column="1" IsChecked="{Binding AutoStart}" IsEnabled="{Binding !AutostartBusy}" />
+          </Grid>
+          <Border Classes="banner warning" IsVisible="{Binding AutostartMessage, Converter={x:Static ObjectConverters.IsNotNull}}" Margin="0,4">
+            <TextBlock Text="{Binding AutostartMessage}" TextWrapping="Wrap" />
+          </Border>
+          <Grid Classes="row" ColumnDefinitions="*,Auto">
+            <TextBlock Text="Подключаться при запуске" VerticalAlignment="Center" />
+            <ToggleSwitch Grid.Column="1" IsChecked="{Binding AutoConnect}" />
+          </Grid>
+          <Grid Classes="row" ColumnDefinitions="*,Auto">
+            <TextBlock Text="При автозапуске сразу сворачиваться в трей" VerticalAlignment="Center" />
+            <ToggleSwitch Grid.Column="1" IsChecked="{Binding StartMinimized}" />
+          </Grid>
+          <Grid Classes="row" ColumnDefinitions="*,Auto">
+            <StackPanel>
+              <TextBlock Text="Закрытие окна сворачивает в трей" />
+              <TextBlock Classes="caption" Text="Обход продолжит работать. Выйти — через меню значка в трее." />
+            </StackPanel>
+            <ToggleSwitch Grid.Column="1" IsChecked="{Binding CloseToTray}" />
+          </Grid>
+          <Grid Classes="row" ColumnDefinitions="*,Auto">
+            <StackPanel>
+              <TextBlock Text="Автоподбор стратегии" />
+              <TextBlock Classes="caption" TextWrapping="Wrap" Text="После подключения проверять, открываются ли заблокированные сайты, и при необходимости подбирать стратегию самостоятельно." />
+            </StackPanel>
+            <ToggleSwitch Grid.Column="1" IsChecked="{Binding AutoTune}" />
+          </Grid>
+        </StackPanel>
+      </Border>
+
+      <!-- Сеть -->
+      <Border Classes="card">
+        <StackPanel>
+          <TextBlock Classes="h2" Text="Сеть" Margin="0,0,0,6" />
+          <Grid Classes="row" ColumnDefinitions="*,Auto">
+            <StackPanel>
+              <TextBlock Text="Порт локального прокси (SOCKS5)" />
+              <TextBlock Classes="caption" Text="{Binding PortWarning}" Foreground="{DynamicResource WarningBrush}"
+                         IsVisible="{Binding PortWarning, Converter={x:Static ObjectConverters.IsNotNull}}" />
+            </StackPanel>
+            <NumericUpDown Grid.Column="1" Value="{Binding SocksPort}" Minimum="1024" Maximum="65535" Width="140" FormatString="0" />
+          </Grid>
+          <Grid Classes="row" ColumnDefinitions="*,Auto">
+            <StackPanel>
+              <TextBlock Text="DNS в режиме TUN" />
+              <TextBlock Classes="caption" Text="Зашифрованный DNS не даёт провайдеру подменять адреса сайтов." />
+            </StackPanel>
+            <ComboBox Grid.Column="1" ItemsSource="{Binding DnsNames}" SelectedIndex="{Binding DnsIndex}" Width="260" />
+          </Grid>
+          <Grid Classes="row" ColumnDefinitions="*,Auto" IsVisible="{Binding IsCustomDns}">
+            <TextBlock Text="Адрес DNS" VerticalAlignment="Center" />
+            <TextBox Grid.Column="1" Text="{Binding CustomDns}" Watermark="https://dns.example/dns-query или 1.2.3.4" Width="320" />
+          </Grid>
+          <Grid Classes="row" ColumnDefinitions="*,Auto">
+            <StackPanel>
+              <TextBlock Text="Отключать QUIC для обхода" />
+              <TextBlock Classes="caption" Text="Браузер перейдёт с QUIC (UDP) на TCP, где обход работает надёжнее. Помогает YouTube." TextWrapping="Wrap" />
+            </StackPanel>
+            <ToggleSwitch Grid.Column="1" IsChecked="{Binding BlockQuic}" />
+          </Grid>
+          <Grid Classes="row" ColumnDefinitions="*,Auto">
+            <TextBlock Text="IPv6 в режиме TUN" VerticalAlignment="Center" />
+            <ToggleSwitch Grid.Column="1" IsChecked="{Binding Ipv6}" />
+          </Grid>
+        </StackPanel>
+      </Border>
+
+      <!-- Внешний вид -->
+      <Border Classes="card">
+        <Grid ColumnDefinitions="*,Auto">
+          <TextBlock Classes="h2" Text="Тема" VerticalAlignment="Center" />
+          <Border Grid.Column="1" Classes="segments">
+            <StackPanel Orientation="Horizontal">
+              <RadioButton Classes="segment" GroupName="theme" IsChecked="{Binding ThemeSystem}" Content="Как в системе" />
+              <RadioButton Classes="segment" GroupName="theme" IsChecked="{Binding ThemeLight}">
+                <StackPanel Orientation="Horizontal" Spacing="6"><PathIcon Data="{StaticResource Icon.WhiteBalanceSunny}" Width="14" Height="14" /><TextBlock Text="Светлая" /></StackPanel>
+              </RadioButton>
+              <RadioButton Classes="segment" GroupName="theme" IsChecked="{Binding ThemeDark}">
+                <StackPanel Orientation="Horizontal" Spacing="6"><PathIcon Data="{StaticResource Icon.WeatherNight}" Width="14" Height="14" /><TextBlock Text="Тёмная" /></StackPanel>
+              </RadioButton>
+            </StackPanel>
+          </Border>
+        </Grid>
+      </Border>
+
+      <!-- Расширенные -->
+      <Border Classes="card">
+        <StackPanel Spacing="10">
+          <Button Classes="ghost" Padding="0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Command="{Binding ToggleAdvancedCommand}">
+            <Grid ColumnDefinitions="*,Auto">
+              <StackPanel>
+                <TextBlock Classes="h2" Text="Расширенные" />
+                <TextBlock Classes="caption" Text="Внешний прокси для сервисов, заблокированных по IP" />
+              </StackPanel>
+              <PathIcon Grid.Column="1" Data="{StaticResource Icon.ChevronRight}" Foreground="{DynamicResource MutedBrush}" />
+            </Grid>
+          </Button>
+          <StackPanel IsVisible="{Binding ShowAdvanced}" Spacing="10" Classes="appear">
+            <TextBlock Classes="muted" TextWrapping="Wrap"
+                       Text="Обход DPI не поможет, если провайдер блокирует сам IP-адрес сервера (так бывает с Telegram, Instagram, X). Для таких правил можно выбрать маршрут «Внешний прокси» — ваш собственный SOCKS5/HTTP-прокси." />
+            <Grid Classes="row" ColumnDefinitions="*,Auto">
+              <TextBlock Text="Использовать внешний прокси" VerticalAlignment="Center" />
+              <ToggleSwitch Grid.Column="1" IsChecked="{Binding UpstreamEnabled}" />
+            </Grid>
+            <Grid ColumnDefinitions="*,Auto" IsEnabled="{Binding UpstreamEnabled}">
+              <TextBox Classes="mono" Text="{Binding UpstreamUri}" Watermark="socks5://user:pass@1.2.3.4:1080" />
+              <Button Grid.Column="1" Classes="soft" Command="{Binding CheckUpstreamCommand}" Margin="8,0,0,0" IsEnabled="{Binding !IsCheckingUpstream}">
+                <StackPanel Orientation="Horizontal" Spacing="8"><PathIcon Data="{StaticResource Icon.ShieldCheckOutline}" /><TextBlock Text="Проверить" /></StackPanel>
+              </Button>
+            </Grid>
+            <Border Classes="banner" Classes.success="{Binding UpstreamCheckOk}" Classes.danger="{Binding !UpstreamCheckOk}"
+                    IsVisible="{Binding UpstreamCheck, Converter={x:Static ObjectConverters.IsNotNull}}">
+              <TextBlock Text="{Binding UpstreamCheck}" TextWrapping="Wrap" />
+            </Border>
+            <Grid Classes="row" ColumnDefinitions="*,Auto">
+              <StackPanel>
+                <TextBlock Text="SNI для фейковых пакетов" />
+                <TextBlock Classes="caption" Text="Подставляется в стратегии вместо {sni}" />
+              </StackPanel>
+              <TextBox Grid.Column="1" Text="{Binding FakeSni}" Width="220" />
+            </Grid>
+          </StackPanel>
+        </StackPanel>
+      </Border>
+
+      <!-- О программе -->
+      <Border Classes="card">
+        <StackPanel Spacing="10">
+          <StackPanel Orientation="Horizontal" Spacing="14">
+            <Image Source="avares://ByeDPI-PC/Assets/logo-64.png" Width="48" Height="48" />
+            <StackPanel VerticalAlignment="Center">
+              <TextBlock Classes="h2"><Run Text="ByeDPI PC " /><Run Text="{Binding Version}" Foreground="{DynamicResource MutedBrush}" FontWeight="Normal" /></TextBlock>
+              <TextBlock Classes="caption" Text="Свободная программа под лицензией GPL-3.0. Без телеметрии." />
+            </StackPanel>
+          </StackPanel>
+          <TextBlock Classes="muted" TextWrapping="Wrap"
+                     Text="Основано на ByeByeDPI (romanvht, GPL-3.0). Движок обхода — byedpi (hufrea, MIT). Маршрутизация TUN — sing-box (SagerNet, GPL-3.0) с драйвером wintun. Интерфейс — Avalonia (MIT), шрифт Inter (OFL), иконки Material Design Icons (Apache 2.0) и Simple Icons (CC0)." />
+          <SelectableTextBlock Classes="mono caption" Text="{Binding EngineInfo}" TextWrapping="Wrap" />
+          <WrapPanel>
+            <Button Classes="soft" Margin="0,0,8,8" Command="{Binding OpenUrlCommand}" CommandParameter="https://github.com/romanvht/ByeByeDPI">
+              <StackPanel Orientation="Horizontal" Spacing="8"><PathIcon Data="{StaticResource Icon.Github}" /><TextBlock Text="ByeByeDPI" /></StackPanel>
+            </Button>
+            <Button Classes="soft" Margin="0,0,8,8" Command="{Binding OpenUrlCommand}" CommandParameter="https://github.com/hufrea/byedpi">
+              <StackPanel Orientation="Horizontal" Spacing="8"><PathIcon Data="{StaticResource Icon.Github}" /><TextBlock Text="byedpi" /></StackPanel>
+            </Button>
+            <Button Classes="soft" Margin="0,0,8,8" Command="{Binding OpenUrlCommand}" CommandParameter="https://github.com/SagerNet/sing-box">
+              <StackPanel Orientation="Horizontal" Spacing="8"><PathIcon Data="{StaticResource Icon.Github}" /><TextBlock Text="sing-box" /></StackPanel>
+            </Button>
+            <Button Classes="ghost" Margin="0,0,8,8" Command="{Binding OpenConfigDirCommand}">
+              <StackPanel Orientation="Horizontal" Spacing="8"><PathIcon Data="{StaticResource Icon.FolderOpenOutline}" /><TextBlock Text="Папка настроек" /></StackPanel>
+            </Button>
+          </WrapPanel>
+        </StackPanel>
+      </Border>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

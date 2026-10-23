@@ -1,0 +1,127 @@
+[
+  {
+    "Id": "preset.youtube",
+    "Name": "YouTube",
+    "Icon": "youtube",
+    "Description": "Сайт и видео YouTube в любом браузере",
+    "Enabled": true,
+    "Domains": [
+      "youtube.com", "youtu.be", "yt.be", "youtube-nocookie.com", "youtubekids.com",
+      "googlevideo.com", "ytimg.com", "ggpht.com",
+      "youtubei.googleapis.com", "youtube.googleapis.com", "jnn-pa.googleapis.com",
+      "yt3.googleusercontent.com", "yt4.googleusercontent.com", "wide-youtube.l.google.com"
+    ]
+  },
+  {
+    "Id": "preset.discord",
+    "Name": "Discord",
+    "Icon": "discord",
+    "Description": "Приложение Discord и discord.com",
+    "Enabled": true,
+    "Processes": [ "Discord.exe", "DiscordPTB.exe", "DiscordCanary.exe", "Discord" ],
+    "Domains": [
+      "discord.com", "discord.gg", "discord.app", "discord.co", "discord.dev", "discord.new",
+      "discord.gift", "discord.gifts", "discord.media", "discord.store", "discord.design",
+      "discordapp.com", "discordapp.net", "discordcdn.com", "discordstatus.com", "dis.gd",
+      "discordsays.com", "discordactivities.com", "discord-attachments-uploads-prd.storage.googleapis.com"
+    ]
+  },
+  {
+    "Id": "preset.telegram",
+    "Name": "Telegram",
+    "Icon": "telegram",
+    "Description": "Telegram Desktop и web.telegram.org",
+    "Enabled": true,
+    "Processes": [ "Telegram.exe", "telegram-desktop", "AyuGram.exe", "Kotatogram.exe" ],
+    "Domains": [
+      "telegram.org", "t.me", "telegram.me", "telegram.dog", "telesco.pe", "telegra.ph",
+      "tdesktop.com", "cdn-telegram.org", "telegram-cdn.org", "tg.dev"
+    ],
+    "IpCidrs": [
+      "91.105.192.0/23", "91.108.4.0/22", "91.108.8.0/22", "91.108.12.0/22", "91.108.16.0/22",
+      "91.108.20.0/22", "91.108.56.0/22", "95.161.64.0/20", "149.154.160.0/20", "185.76.151.0/24",
+      "2001:67c:4e8::/48", "2001:b28:f23c::/47", "2001:b28:f23f::/48", "2a0a:f280::/32"
+    ],
+    "Hint": "Telegram часто блокируют по IP-адресам, и обход DPI тут не поможет. Если не подключается, включите внешний прокси (Настройки → Расширенные) и выберите маршрут «Внешний прокси»."
+  },
+  {
+    "Id": "preset.instagram",
+    "Name": "Instagram",
+    "Icon": "instagram",
+    "Description": "instagram.com и его CDN",
+    "Enabled": true,
+    "Domains": [
+      "instagram.com", "cdninstagram.com", "ig.me", "instagr.am", "igcdn.com",
+      "fbcdn.net", "facebook.net", "fbsbx.com"
+    ],
+    "Hint": "Instagram часто блокируют по IP-адресам. Если обход DPI не помогает, выберите маршрут «Внешний прокси»."
+  },
+  {
+    "Id": "preset.facebook",
+    "Name": "Facebook и Messenger",
+    "Icon": "facebook",
+    "Description": "facebook.com, messenger.com и CDN Meta",
+    "Enabled": true,
+    "Domains": [
+      "facebook.com", "fb.com", "fb.me", "fbcdn.net", "fbcdn.com", "facebook.net", "fbsbx.com",
+      "messenger.com", "m.me", "fb.watch"
+    ],
+    "Hint": "Facebook часто блокируют по IP-адресам. Если обход DPI не помогает, выберите маршрут «Внешний прокси»."
+  },
+  {
+    "Id": "preset.metaquest",
+    "Name": "Meta Quest (приложение на ПК)",
+    "Icon": "meta",
+    "Description": "Meta Quest Link / Oculus: вход, магазин, загрузки",
+    "Enabled": true,
+    "Processes": [
+      "OculusClient.exe", "OVRServer_x64.exe", "OVRServiceLauncher.exe", "OVRRedir.exe",
+      "OculusDash.exe", "OVRLibraryService.exe", "OVRLibrarian.exe", "OculusSetup.exe",
+      "MetaQuestLinkSetup.exe", "Meta Quest Link.exe"
+    ],
+    "Domains": [
+      "oculus.com", "oculuscdn.com", "meta.com", "metaquest.com", "facebook.com", "facebook.net",
+      "fbcdn.net", "fbsbx.com", "fb.com", "wit.ai"
+    ],
+    "Hint": "Работает для приложения Meta Quest Link на этом компьютере. Сам шлем отдельно не настраивается."
+  },
+  {
+    "Id": "preset.rutracker",
+    "Name": "RuTracker",
+    "Icon": "rutracker",
+    "Description": "rutracker.org и анонсер трекера",
+    "Enabled": true,
+    "Domains": [ "rutracker.org", "rutracker.net", "rutracker.cc", "t-ru.org" ]
+  },
+  {
+    "Id": "preset.hdrezka",
+    "Name": "HDRezka",
+    "Icon": "hdrezka",
+    "Description": "Зеркала HDRezka и видеосерверы",
+    "Enabled": true,
+    "Domains": [
+      "rezka.ag", "hdrezka.ag", "hdrezka.me", "hdrezka.co", "hdrezka.website", "hdrzk.org",
+      "voidboost.net", "voidboost.cc", "voidboost.tv"
+    ]
+  },
+  {
+    "Id": "preset.x",
+    "Name": "X (Twitter)",
+    "Icon": "x",
+    "Description": "x.com, twitter.com и CDN",
+    "Enabled": false,
+    "Domains": [ "x.com", "twitter.com", "twimg.com", "t.co", "pscp.tv" ],
+    "Hint": "X часто блокируют по IP-адресам. Если обход DPI не помогает, выберите маршрут «Внешний прокси»."
+  },
+  {
+    "Id": "preset.browsers",
+    "Name": "Браузеры целиком",
+    "Icon": "browser",
+    "Description": "Весь трафик Chrome, Edge, Firefox, Яндекс, Opera, Brave, Vivaldi",
+    "Enabled": false,
+    "Processes": [
+      "chrome.exe", "msedge.exe", "firefox.exe", "browser.exe", "opera.exe", "brave.exe", "vivaldi.exe",
+      "chrome", "firefox", "Google Chrome", "Firefox"
+    ]
+  }
+]

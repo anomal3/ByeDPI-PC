@@ -1,0 +1,42 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>ByeDpiPc.App</RootNamespace>
+    <AssemblyName>ByeDPI-PC</AssemblyName>
+    <ApplicationIcon>Assets\app.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <AvaloniaResource Include="Assets\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="$(AvaloniaVersion)" />
+    <PackageReference Include="Avalonia.Desktop" Version="$(AvaloniaVersion)" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="$(AvaloniaVersion)" />
+    <PackageReference Include="Avalonia.Fonts.Inter" Version="$(AvaloniaVersion)" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+    <PackageReference Include="System.Drawing.Common" Version="8.0.10" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ByeDpiPc.Core\ByeDpiPc.Core.csproj" />
+  </ItemGroup>
+
+  <!-- Движки (ciadpi, sing-box) кладёт scripts/fetch-engines в engine/<rid>; копируем их рядом с программой. -->
+  <PropertyGroup>
+    <EngineRid Condition="'$(RuntimeIdentifier)' != ''">$(RuntimeIdentifier)</EngineRid>
+    <EngineRid Condition="'$(EngineRid)' == '' and $([MSBuild]::IsOSPlatform('Windows'))">win-x64</EngineRid>
+    <EngineRid Condition="'$(EngineRid)' == '' and $([MSBuild]::IsOSPlatform('Linux'))">linux-x64</EngineRid>
+    <EngineRid Condition="'$(EngineRid)' == '' and $([MSBuild]::IsOSPlatform('OSX'))">osx-arm64</EngineRid>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="..\..\engine\$(EngineRid)\**\*" Link="engine\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

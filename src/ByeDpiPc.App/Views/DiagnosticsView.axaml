@@ -1,0 +1,51 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:ByeDpiPc.App.ViewModels"
+             x:Class="ByeDpiPc.App.Views.DiagnosticsView"
+             x:DataType="vm:DiagnosticsViewModel"
+             Width="580">
+  <Grid RowDefinitions="Auto,*,Auto">
+    <Grid ColumnDefinitions="*,Auto" Margin="22,18,14,10">
+      <StackPanel>
+        <TextBlock Classes="h2" Text="Диагностика" />
+        <TextBlock Classes="caption" Text="Проверка движков, адаптера, DNS и сайтов" />
+      </StackPanel>
+      <Button Grid.Column="1" Classes="icon" Command="{Binding CloseCommand}" VerticalAlignment="Top"><PathIcon Data="{StaticResource Icon.Close}" /></Button>
+    </Grid>
+    <Panel Grid.Row="1" MinHeight="200">
+      <StackPanel IsVisible="{Binding IsRunning}" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10">
+        <PathIcon Classes="spin" Data="{StaticResource Icon.Refresh}" Width="26" Height="26" Foreground="{DynamicResource AccentBrush}" />
+        <TextBlock Classes="muted" Text="Проверяю… это займёт до 20 секунд" />
+      </StackPanel>
+      <ScrollViewer MaxHeight="420">
+        <ItemsControl ItemsSource="{Binding Rows}" Margin="22,0">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:DiagnosticRow">
+              <Grid ColumnDefinitions="Auto,*" Margin="0,0,0,12" Classes="appear">
+                <Panel Width="20" Margin="0,1,12,0" VerticalAlignment="Top">
+                  <PathIcon Data="{StaticResource Icon.CheckCircle}" Foreground="{DynamicResource SuccessBrush}" Width="18" Height="18" IsVisible="{Binding IsOk}" />
+                  <PathIcon Data="{StaticResource Icon.CloseCircle}" Foreground="{DynamicResource DangerBrush}" Width="18" Height="18" IsVisible="{Binding IsFail}" />
+                  <PathIcon Data="{StaticResource Icon.InformationOutline}" Foreground="{DynamicResource AccentBrush}" Width="18" Height="18" IsVisible="{Binding IsInfo}" />
+                </Panel>
+                <StackPanel Grid.Column="1" Spacing="2">
+                  <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
+                  <SelectableTextBlock Text="{Binding Details}" TextWrapping="Wrap" Foreground="{DynamicResource MutedBrush}" />
+                </StackPanel>
+              </Grid>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </ScrollViewer>
+    </Panel>
+    <Border Grid.Row="2" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,1,0,0" Padding="22,12">
+      <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+        <Button Classes="ghost" Command="{Binding CopyCommand}">
+          <StackPanel Orientation="Horizontal" Spacing="8"><PathIcon Data="{StaticResource Icon.ContentCopy}" /><TextBlock Text="Скопировать отчёт" /></StackPanel>
+        </Button>
+        <Button Classes="accent" Command="{Binding RunCommand}" IsEnabled="{Binding !IsRunning}">
+          <StackPanel Orientation="Horizontal" Spacing="8"><PathIcon Data="{StaticResource Icon.Refresh}" /><TextBlock Text="Повторить" /></StackPanel>
+        </Button>
+      </StackPanel>
+    </Border>
+  </Grid>
+</UserControl>

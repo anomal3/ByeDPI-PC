@@ -1,0 +1,75 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:ByeDpiPc.App.ViewModels"
+             x:Class="ByeDpiPc.App.Views.ListsView"
+             x:DataType="vm:ListsViewModel">
+  <Grid RowDefinitions="Auto,*" Margin="32,26,32,28">
+    <StackPanel Spacing="4" Margin="0,0,0,16">
+      <TextBlock Classes="h1" Text="Списки доменов" />
+      <TextBlock Classes="muted" TextWrapping="Wrap"
+                 Text="Свой список сайтов для обхода и сайты, по которым проверяется работа стратегий. Один домен в строке; поддомены подхватываются сами, «*.» в начале можно не писать." />
+    </StackPanel>
+
+    <Grid Grid.Row="1" ColumnDefinitions="*,*">
+      <Border Classes="card" Margin="0,0,8,0">
+        <Grid RowDefinitions="Auto,Auto,*,Auto">
+          <Grid ColumnDefinitions="Auto,*,Auto">
+            <Border Width="36" Height="36" CornerRadius="10" Background="{DynamicResource AccentSoftBrush}" Margin="0,0,12,0">
+              <PathIcon Data="{StaticResource Icon.Web}" Foreground="{DynamicResource AccentBrush}" />
+            </Border>
+            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+              <TextBlock Classes="h3" Text="Мои домены" />
+              <TextBlock Classes="caption" Text="{Binding CustomInfo}" />
+            </StackPanel>
+            <ToggleSwitch Grid.Column="2" IsChecked="{Binding CustomEnabled}" OnContent="" OffContent="" MinWidth="0" />
+          </Grid>
+          <Grid Grid.Row="1" ColumnDefinitions="Auto,*" Margin="0,14,0,10">
+            <TextBlock Classes="muted" Text="Маршрут:" VerticalAlignment="Center" Margin="0,0,10,0" />
+            <ComboBox Grid.Column="1" ItemsSource="{Binding RouteNames}" SelectedIndex="{Binding CustomRouteIndex}" HorizontalAlignment="Stretch" />
+          </Grid>
+          <TextBox Grid.Row="2" Classes="mono" Text="{Binding CustomDomainsText}" AcceptsReturn="True" TextWrapping="NoWrap"
+                   VerticalContentAlignment="Top" Watermark="example.com&#x0a;*.another-site.org" />
+          <StackPanel Grid.Row="3" Orientation="Horizontal" Spacing="8" Margin="0,12,0,0">
+            <Button Classes="soft" Command="{Binding ImportCustomCommand}">
+              <StackPanel Orientation="Horizontal" Spacing="8"><PathIcon Data="{StaticResource Icon.TrayArrowDown}" /><TextBlock Text="Импорт .txt" /></StackPanel>
+            </Button>
+            <Button Classes="soft" Command="{Binding ExportCustomCommand}">
+              <StackPanel Orientation="Horizontal" Spacing="8"><PathIcon Data="{StaticResource Icon.TrayArrowUp}" /><TextBlock Text="Экспорт" /></StackPanel>
+            </Button>
+          </StackPanel>
+        </Grid>
+      </Border>
+
+      <Border Grid.Column="1" Classes="card" Margin="8,0,0,0">
+        <Grid RowDefinitions="Auto,Auto,*,Auto">
+          <Grid ColumnDefinitions="Auto,*">
+            <Border Width="36" Height="36" CornerRadius="10" Background="{DynamicResource SuccessSoftBrush}" Margin="0,0,12,0">
+              <PathIcon Data="{StaticResource Icon.FormatListChecks}" Foreground="{DynamicResource SuccessBrush}" />
+            </Border>
+            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+              <TextBlock Classes="h3" Text="Сайты для проверки" />
+              <TextBlock Classes="caption" Text="{Binding SitesInfo}" />
+            </StackPanel>
+          </Grid>
+          <TextBlock Grid.Row="1" Classes="caption" TextWrapping="Wrap" Margin="0,14,0,10"
+                     Text="По ним «Подбор» и автоподбор решают, какая стратегия лучше. Добавьте сюда сайты, которые у вас не открываются." />
+          <TextBox Grid.Row="2" Classes="mono" Text="{Binding TestSitesText}" AcceptsReturn="True" TextWrapping="NoWrap" VerticalContentAlignment="Top" />
+          <WrapPanel Grid.Row="3" Margin="0,12,0,0">
+            <Button Classes="soft" Command="{Binding SitesFromRulesCommand}" Margin="0,0,8,0" ToolTip.Tip="Добавить домены из включённых правил">
+              <StackPanel Orientation="Horizontal" Spacing="8"><PathIcon Data="{StaticResource Icon.Plus}" /><TextBlock Text="Из правил" /></StackPanel>
+            </Button>
+            <Button Classes="soft" Command="{Binding ImportSitesCommand}" Margin="0,0,8,0">
+              <StackPanel Orientation="Horizontal" Spacing="8"><PathIcon Data="{StaticResource Icon.TrayArrowDown}" /><TextBlock Text="Импорт" /></StackPanel>
+            </Button>
+            <Button Classes="soft" Command="{Binding ExportSitesCommand}" Margin="0,0,8,0">
+              <StackPanel Orientation="Horizontal" Spacing="8"><PathIcon Data="{StaticResource Icon.TrayArrowUp}" /><TextBlock Text="Экспорт" /></StackPanel>
+            </Button>
+            <Button Classes="ghost" Command="{Binding ResetSitesCommand}">
+              <StackPanel Orientation="Horizontal" Spacing="8"><PathIcon Data="{StaticResource Icon.Restore}" /><TextBlock Text="По умолчанию" /></StackPanel>
+            </Button>
+          </WrapPanel>
+        </Grid>
+      </Border>
+    </Grid>
+  </Grid>
+</UserControl>

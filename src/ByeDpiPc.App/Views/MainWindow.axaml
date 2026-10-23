@@ -1,0 +1,91 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:ByeDpiPc.App.ViewModels"
+        xmlns:v="using:ByeDpiPc.App.Views"
+        xmlns:c="using:ByeDpiPc.App.Controls"
+        x:Class="ByeDpiPc.App.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Title="ByeDPI PC"
+        Icon="avares://ByeDPI-PC/Assets/app.ico"
+        Width="1060" Height="720"
+        MinWidth="900" MinHeight="620"
+        MaxWidth="1360" MaxHeight="940"
+        WindowStartupLocation="CenterScreen">
+
+  <Window.DataTemplates>
+    <DataTemplate DataType="vm:HomeViewModel"><v:HomeView /></DataTemplate>
+    <DataTemplate DataType="vm:AppsViewModel"><v:AppsView /></DataTemplate>
+    <DataTemplate DataType="vm:ListsViewModel"><v:ListsView /></DataTemplate>
+    <DataTemplate DataType="vm:EditorViewModel"><v:EditorView /></DataTemplate>
+    <DataTemplate DataType="vm:TesterViewModel"><v:TesterView /></DataTemplate>
+    <DataTemplate DataType="vm:LogsViewModel"><v:LogsView /></DataTemplate>
+    <DataTemplate DataType="vm:SettingsViewModel"><v:SettingsView /></DataTemplate>
+    <DataTemplate DataType="vm:AppPickerViewModel"><v:AppPickerView /></DataTemplate>
+    <DataTemplate DataType="vm:DiagnosticsViewModel"><v:DiagnosticsView /></DataTemplate>
+  </Window.DataTemplates>
+
+  <Panel>
+    <Grid ColumnDefinitions="232,*">
+      <!-- Боковая панель -->
+      <Border Grid.Column="0" Background="{DynamicResource SidebarBrush}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,1,0">
+        <Border.Transitions>
+          <Transitions><BrushTransition Property="Background" Duration="0:0:0.25" /></Transitions>
+        </Border.Transitions>
+        <Grid RowDefinitions="Auto,*,Auto" Margin="14,18,14,14">
+          <StackPanel Orientation="Horizontal" Spacing="11" Margin="6,0,0,20">
+            <Image Source="avares://ByeDPI-PC/Assets/logo-64.png" Width="36" Height="36" />
+            <StackPanel VerticalAlignment="Center">
+              <TextBlock Text="ByeDPI PC" FontSize="16" FontWeight="Bold" />
+              <TextBlock Classes="caption" Text="обход DPI · не VPN" />
+            </StackPanel>
+          </StackPanel>
+
+          <ListBox Grid.Row="1" Classes="nav" ItemsSource="{Binding Nav}" SelectedItem="{Binding SelectedNav}">
+            <ListBox.ItemTemplate>
+              <DataTemplate x:DataType="vm:NavItem">
+                <StackPanel Orientation="Horizontal" Spacing="12">
+                  <PathIcon Data="{Binding Icon}" Width="18" Height="18" />
+                  <TextBlock Text="{Binding Title}" VerticalAlignment="Center" />
+                </StackPanel>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+
+          <Grid Grid.Row="2" ColumnDefinitions="*,Auto" Margin="4,0,0,0">
+            <StackPanel VerticalAlignment="Center" Spacing="2">
+              <StackPanel Orientation="Horizontal" Spacing="7">
+                <Ellipse Width="8" Height="8" Classes="statusdot"
+                         Classes.on="{Binding Home.IsOn}" Classes.busy="{Binding Home.IsBusy}" Classes.error="{Binding Home.IsError}" />
+                <TextBlock Classes="caption" Text="{Binding Home.StatusTitle}" />
+              </StackPanel>
+              <TextBlock Classes="caption" Text="{Binding Version}" Opacity="0.7" />
+            </StackPanel>
+            <Button Grid.Column="1" Classes="icon" Command="{Binding ToggleThemeCommand}" ToolTip.Tip="Светлая / тёмная тема">
+              <Panel>
+                <PathIcon Data="{StaticResource Icon.WeatherNight}" IsVisible="{Binding !IsDark}" Width="18" Height="18" />
+                <PathIcon Data="{StaticResource Icon.WhiteBalanceSunny}" IsVisible="{Binding IsDark}" Width="18" Height="18" />
+              </Panel>
+            </Button>
+          </Grid>
+        </Grid>
+      </Border>
+
+      <!-- Страницы -->
+      <TransitioningContentControl Grid.Column="1" Name="PageHost" Content="{Binding CurrentPage}">
+        <TransitioningContentControl.PageTransition>
+          <c:FadeSlideTransition />
+        </TransitioningContentControl.PageTransition>
+      </TransitioningContentControl>
+    </Grid>
+
+    <!-- Диалог поверх окна -->
+    <Border Name="DialogLayer" Background="#80000000" IsVisible="{Binding Dialog, Converter={x:Static ObjectConverters.IsNotNull}}"
+            PointerPressed="OnDialogBackgroundPressed">
+      <Border Classes="card appear" MaxWidth="620" MaxHeight="600" Margin="40" Padding="0"
+              HorizontalAlignment="Center" VerticalAlignment="Center" BoxShadow="0 18 50 0 #55000000"
+              PointerPressed="OnDialogPressed">
+        <ContentControl Content="{Binding Dialog}" />
+      </Border>
+    </Border>
+  </Panel>
+</Window>
