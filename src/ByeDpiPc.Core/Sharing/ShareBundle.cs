@@ -103,7 +103,8 @@ public sealed class ShareBundle
                 using var reader = new StreamReader(gz, Encoding.UTF8);
                 text = reader.ReadToEnd();
             }
-            else if (text.StartsWith("vless://", StringComparison.OrdinalIgnoreCase) || text.StartsWith("socks5://", StringComparison.OrdinalIgnoreCase))
+            else if (text.StartsWith("vless://", StringComparison.OrdinalIgnoreCase) || text.StartsWith("ssh://", StringComparison.OrdinalIgnoreCase)
+                     || text.StartsWith("socks5://", StringComparison.OrdinalIgnoreCase))
             {
                 if (!UpstreamProxy.TryParse(text, out var p, out var err)) throw new FormatException(err);
                 return new ShareBundle { Name = p!.Label ?? "Внешний прокси", Upstream = text };

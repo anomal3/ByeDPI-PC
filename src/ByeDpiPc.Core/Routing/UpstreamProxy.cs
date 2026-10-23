@@ -3,7 +3,7 @@ using System.Web;
 
 namespace ByeDpiPc.Core.Routing;
 
-public enum UpstreamKind { Socks5, Http, Https, Vless }
+public enum UpstreamKind { Socks5, Http, Https, Vless, Ssh }
 
 /// <summary>Параметры VLESS (Reality / TLS) из ссылки vless://.</summary>
 public sealed record VlessParams(
@@ -12,7 +12,7 @@ public sealed record VlessParams(
 
 /// <summary>
 /// Внешний прокси пользователя для сервисов, заблокированных по IP:
-/// socks5://, http(s):// или vless:// (Reality/TLS — работает через sing-box).
+/// socks5://, http(s)://, vless:// (Reality/TLS) или ssh://user:pass@host:port (SSH-туннель; VLESS и SSH работают через sing-box).
 /// </summary>
 public sealed record UpstreamProxy(UpstreamKind Kind, string Host, int Port, string? User, string? Password)
 {
@@ -31,6 +31,12 @@ public sealed record UpstreamProxy(UpstreamKind Kind, string Host, int Port, str
             return false;
         }
         if (text.StartsWith("vless://", StringComparison.OrdinalIgnoreCase)) return TryParseVless(text, out proxy, out error);
+        string? label = null;
+        if (text.StartsWith("ssh://", StringComparison.OrdinalIgnoreCase) && text.IndexOf('#') is var h and >= 0)
+        {
+            label = Uri.UnescapeDataString(text[(h + 1)..]);
+            text = text[..h];
+        }
         if (!text.Contains("://")) text = "socks5://" + text;
         if (!Uri.TryCreate(text, UriKind.Absolute, out var uri))
         {
@@ -43,8 +49,9 @@ public sealed record UpstreamProxy(UpstreamKind Kind, string Host, int Port, str
             case "socks" or "socks5" or "socks5h": kind = UpstreamKind.Socks5; break;
             case "http": kind = UpstreamKind.Http; break;
             case "https": kind = UpstreamKind.Https; break;
+            case "ssh": kind = UpstreamKind.Ssh; break;
             default:
-                error = $"протокол «{uri.Scheme}» не поддерживается. Поддерживаются vless://, socks5://, http://, https://";
+                error = $"протокол «{uri.Scheme}» не поддерживается. Поддерживаются vless://, ssh://, socks5://, http://, https://";
                 return false;
         }
         if (string.IsNullOrEmpty(uri.Host))
@@ -53,7 +60,7 @@ public sealed record UpstreamProxy(UpstreamKind Kind, string Host, int Port, str
             return false;
         }
         var port = uri.IsDefaultPort || uri.Port <= 0
-            ? kind switch { UpstreamKind.Socks5 => 1080, UpstreamKind.Https => 443, _ => 8080 }
+            ? kind switch { UpstreamKind.Socks5 => 1080, UpstreamKind.Https => 443, UpstreamKind.Ssh => 22, _ => 8080 }
             : uri.Port;
         string? user = null, pass = null;
         if (!string.IsNullOrEmpty(uri.UserInfo))
@@ -62,7 +69,12 @@ public sealed record UpstreamProxy(UpstreamKind Kind, string Host, int Port, str
             user = Uri.UnescapeDataString(ui[0]);
             pass = ui.Length > 1 ? Uri.UnescapeDataString(ui[1]) : null;
         }
-        proxy = new UpstreamProxy(kind, uri.Host.Trim('[', ']'), port, user, pass);
+        if (kind == UpstreamKind.Ssh && (string.IsNullOrEmpty(user) || string.IsNullOrEmpty(pass)))
+        {
+            error = "в ссылке ssh:// нужны имя пользователя и пароль: ssh://user:pass@host:port";
+            return false;
+        }
+        proxy = new UpstreamProxy(kind, uri.Host.Trim('[', ']'), port, user, pass) { Label = label };
         return true;
     }
 
@@ -118,7 +130,7 @@ public sealed record UpstreamProxy(UpstreamKind Kind, string Host, int Port, str
     private static string? NullIfEmpty(string? s) => string.IsNullOrWhiteSpace(s) ? null : s;
 
     /// <summary>VLESS нельзя отдать браузеру через PAC напрямую — для режима «Только прокси» нужен локальный sing-box.</summary>
-    public bool NeedsLocalBridge => Kind == UpstreamKind.Vless;
+    public bool NeedsLocalBridge => Kind is UpstreamKind.Vless or UpstreamKind.Ssh;
 
     /// <summary>Запись для PAC-файла (авторизацию PAC не поддерживает).</summary>
     public string PacEntry => Kind == UpstreamKind.Socks5
@@ -132,6 +144,7 @@ public sealed record UpstreamProxy(UpstreamKind Kind, string Host, int Port, str
     {
         UpstreamKind.Vless => $"VLESS{(Vless!.Security == "reality" ? " Reality" : Vless.Security == "tls" ? " TLS" : "")} · {HostPort}" + (Label != null ? $" · {Label}" : ""),
         UpstreamKind.Socks5 => $"SOCKS5 · {HostPort}",
+        UpstreamKind.Ssh => $"SSH-туннель · {User}@{HostPort}" + (Label != null ? $" · {Label}" : ""),
         _ => $"{Kind.ToString().ToUpperInvariant()} · {HostPort}",
     };
 
@@ -186,6 +199,15 @@ public sealed record UpstreamProxy(UpstreamKind Kind, string Host, int Port, str
             }
             o["packet_encoding"] = "xudp";
             return o;
+        }
+
+        if (Kind == UpstreamKind.Ssh)
+        {
+            return new JsonObject
+            {
+                ["type"] = "ssh", ["tag"] = tag, ["server"] = Host, ["server_port"] = Port,
+                ["user"] = User, ["password"] = Password,
+            };
         }
 
         var p = new JsonObject

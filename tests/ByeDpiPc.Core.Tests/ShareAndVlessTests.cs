@@ -91,6 +91,19 @@ public class ShareAndVlessTests
     }
 
     [Fact]
+    public void Ssh_ParsesLinkWithCyrillicLabel()
+    {
+        Assert.True(UpstreamProxy.TryParse("ssh://tun-ivan:Secret123@203.0.113.5:41830#Туннель-Иван", out var p, out var err), err);
+        Assert.Equal(UpstreamKind.Ssh, p!.Kind);
+        Assert.Equal(41830, p.Port);
+        Assert.Equal("tun-ivan", p.User);
+        Assert.Equal("Туннель-Иван", p.Label);
+        Assert.True(p.NeedsLocalBridge);
+        Assert.Equal("ssh", (string?)p.ToSingBoxOutbound()["type"]);
+        Assert.False(UpstreamProxy.TryParse("ssh://203.0.113.5:22", out _, out _));
+    }
+
+    [Fact]
     public void Share_RejectsGarbage() => Assert.Throws<ByeDpiPc.Core.Engine.UserFacingException>(() => ShareBundle.Parse("bdpi:!!!"));
 
     [Fact]
@@ -106,6 +119,8 @@ public class ShareAndVlessTests
         Check(singBox, SingBoxConfigBuilder.Build(s, plan));
         Check(singBox, SingBoxConfigBuilder.Build(s, plan.UpstreamOnly()));
         Check(singBox, SingBoxConfigBuilder.BuildLocalBridge(plan.UpstreamProxy!, 20999));
+        UpstreamProxy.TryParse("ssh://u:p@203.0.113.5:41830", out var ssh, out _);
+        Check(singBox, SingBoxConfigBuilder.BuildLocalBridge(ssh!, 20998));
     }
 
     private static void Check(string singBox, string config)

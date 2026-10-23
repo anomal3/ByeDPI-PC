@@ -218,21 +218,20 @@ public sealed partial class SettingsViewModel : ViewModelBase
             UpstreamCheck = "Ошибка в адресе: " + error;
             return;
         }
-        if (proxy.Kind == Core.Routing.UpstreamKind.Vless)
-        {
-            UpstreamCheckOk = true;
-            UpstreamCheck = "Ключ VLESS прочитан: " + proxy.Describe() + ". Проверить соединение можно после подключения — откройте Telegram.";
-            return;
-        }
         IsCheckingUpstream = true;
+        UpstreamCheck = "Проверяю: " + proxy.Describe() + "…";
         try
         {
-            using var checker = new SiteChecker(null, TimeSpan.FromSeconds(8), proxy.ToUri());
-            var r = await Task.Run(() => checker.CheckAsync("https://telegram.org", CancellationToken.None));
-            UpstreamCheckOk = r.Ok;
-            UpstreamCheck = r.Ok
-                ? $"Прокси работает: telegram.org открылся за {r.Elapsed.TotalMilliseconds:F0} мс."
-                : "Через прокси telegram.org не открылся: " + r.Error;
+            var r = await Task.Run(() => UpstreamChecker.CheckAsync(proxy, new[] { "https://telegram.org" }));
+            UpstreamCheckOk = r[0].Ok;
+            UpstreamCheck = r[0].Ok
+                ? $"Прокси работает: telegram.org открылся за {r[0].Elapsed.TotalMilliseconds:F0} мс."
+                : "Через прокси telegram.org не открылся: " + r[0].Error;
+        }
+        catch (Exception ex)
+        {
+            UpstreamCheckOk = false;
+            UpstreamCheck = ex is UserFacingException u ? u.Message + " " + u.Advice : ex.Message;
         }
         finally
         {
