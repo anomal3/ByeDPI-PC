@@ -61,6 +61,44 @@ public static class Ui
         await w.WriteAsync(content);
     }
 
+    public static async Task<string?> ReadTextFileAsync(string typeName, string pattern)
+    {
+        if (Root == null) return null;
+        var files = await Root.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = "Открыть",
+            AllowMultiple = false,
+            FileTypeFilter = new[] { new FilePickerFileType(typeName) { Patterns = new[] { pattern } }, FilePickerFileTypes.All },
+        });
+        var file = files.FirstOrDefault();
+        if (file == null) return null;
+        await using var s = await file.OpenReadAsync();
+        using var r = new StreamReader(s);
+        return await r.ReadToEndAsync();
+    }
+
+    public static async Task<bool> SaveFileAsync(string suggestedName, string typeName, string pattern, string content)
+    {
+        if (Root == null) return false;
+        var file = await Root.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+        {
+            Title = "Сохранить",
+            SuggestedFileName = suggestedName,
+            DefaultExtension = pattern.TrimStart('*', '.'),
+            FileTypeChoices = new[] { new FilePickerFileType(typeName) { Patterns = new[] { pattern } } },
+        });
+        if (file == null) return false;
+        await using var s = await file.OpenWriteAsync();
+        await using var w = new StreamWriter(s);
+        await w.WriteAsync(content);
+        return true;
+    }
+
+#pragma warning disable CS0618
+    public static async Task<string?> PasteAsync() =>
+        Root?.Clipboard is { } cb ? await cb.GetTextAsync() : null;
+#pragma warning restore CS0618
+
     public static async Task CopyAsync(string text)
     {
         if (Root?.Clipboard is { } cb) await cb.SetTextAsync(text);

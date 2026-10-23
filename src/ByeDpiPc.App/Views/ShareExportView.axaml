@@ -1,0 +1,44 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:ByeDpiPc.App.ViewModels"
+             x:Class="ByeDpiPc.App.Views.ShareExportView"
+             x:DataType="vm:ShareExportViewModel"
+             Width="520">
+  <StackPanel>
+    <Grid ColumnDefinitions="*,Auto" Margin="22,18,14,6">
+      <StackPanel>
+        <TextBlock Classes="h2" Text="Поделиться настройками" />
+        <TextBlock Classes="caption" Text="Файл .bdpi или текстовый код — друг импортирует их в один клик" />
+      </StackPanel>
+      <Button Grid.Column="1" Classes="icon" Command="{Binding CloseCommand}" VerticalAlignment="Top"><PathIcon Data="{StaticResource Icon.Close}" /></Button>
+    </Grid>
+    <StackPanel Margin="22,8,22,18" Spacing="12">
+      <StackPanel Spacing="6">
+        <TextBlock Classes="caption" Text="Название" />
+        <TextBox Text="{Binding Name}" />
+      </StackPanel>
+      <CheckBox IsChecked="{Binding IncludeStrategy}" Content="Стратегия обхода (текущая)" />
+      <CheckBox IsChecked="{Binding IncludeRules}" Content="Приложения и сайты с маршрутами, свои домены" />
+      <StackPanel Spacing="4">
+        <CheckBox IsChecked="{Binding IncludeUpstream}" IsEnabled="{Binding HasUpstream}">
+          <TextBlock><Run Text="Внешний прокси: " /><Run Text="{Binding UpstreamText}" Foreground="{DynamicResource MutedBrush}" /></TextBlock>
+        </CheckBox>
+        <Border Classes="banner warning" IsVisible="{Binding IncludeUpstream}" Margin="28,2,0,0">
+          <TextBlock TextWrapping="Wrap" FontSize="12"
+                     Text="Ключ внешнего прокси — личный. Отдавайте его только тем, кому доверяете: все, у кого он есть, пользуются вашим сервером." />
+        </Border>
+      </StackPanel>
+      <Border Classes="banner success appear" IsVisible="{Binding Status, Converter={x:Static ObjectConverters.IsNotNull}}">
+        <TextBlock Text="{Binding Status}" TextWrapping="Wrap" />
+      </Border>
+      <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+        <Button Classes="soft" Command="{Binding CopyCodeCommand}">
+          <StackPanel Orientation="Horizontal" Spacing="8"><PathIcon Data="{StaticResource Icon.ContentCopy}" /><TextBlock Text="Скопировать код" /></StackPanel>
+        </Button>
+        <Button Classes="accent" Command="{Binding SaveFileCommand}">
+          <StackPanel Orientation="Horizontal" Spacing="8"><PathIcon Data="{StaticResource Icon.TrayArrowUp}" /><TextBlock Text="Сохранить файл" /></StackPanel>
+        </Button>
+      </StackPanel>
+    </StackPanel>
+  </StackPanel>
+</UserControl>

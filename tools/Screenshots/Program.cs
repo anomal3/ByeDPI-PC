@@ -9,6 +9,7 @@ using ByeDpiPc.App.Views;
 using ByeDpiPc.Core;
 using ByeDpiPc.Core.Engine;
 using ByeDpiPc.Core.Platform;
+using ByeDpiPc.Core.Routing;
 using ByeDpiPc.Core.Testing;
 
 // Скриншоты для README: dotnet run --project tools/Screenshots -- <папка>
@@ -54,6 +55,22 @@ foreach (var theme in new[] { "light", "dark" })
     Shot(window, vm, PageKind.Home, $"home-off-{theme}");
     host.SetDemoState(ConnectionState.Connected);
 
+    host.Update = new ByeDpiPc.Core.Update.UpdateInfo(new Version(1, 2, 0), "v1.2.0", "", "https://github.com", null, null, 0);
+    host.StrategyBroken = true;
+    Shot(window, vm, PageKind.Home, $"home-banners-{theme}");
+    host.Update = null;
+    host.StrategyBroken = false;
+
+    var shareSettings = new AppSettings();
+    Presets.EnsureDefaults(shareSettings);
+    shareSettings.UpstreamEnabled = true;
+    shareSettings.UpstreamUri = "vless://49959f50-96be-49f3-b023-31dc2e4f2478@203.0.113.10:443?security=reality&sni=www.microsoft.com&fp=chrome&pbk=SLRh56AUOWqx2LIYunJklMRpOzRaS5QsWYUJ0B9WAy0&sid=b4f1c68d8440ecff&flow=xtls-rprx-vision&type=tcp#Telegram-Ivan";
+    shareSettings.Rules.First(r => r.Id == "preset.telegram").Route = RouteMode.Upstream;
+    var code = ByeDpiPc.Core.Sharing.ShareBundle.Create(shareSettings, "Telegram для Ивана", new ByeDpiPc.Core.Sharing.ShareBundle.Options { Strategy = false, Upstream = true }).ToCode();
+    vm.ImportText(code);
+    Shot(window, vm, PageKind.Home, $"share-import-{theme}", ticks: 150);
+    vm.ShowDialog(null);
+
     var telegram = vm.Apps.Items.First(i => i.Rule.Id == "preset.telegram");
     telegram.IsExpanded = true;
     Shot(window, vm, PageKind.Apps, $"apps-{theme}");
@@ -73,6 +90,9 @@ foreach (var theme in new[] { "light", "dark" })
     FillLogs();
     Shot(window, vm, PageKind.Logs, $"logs-{theme}");
     Shot(window, vm, PageKind.Settings, $"settings-{theme}");
+    vm.ShareExport();
+    Shot(window, vm, PageKind.Settings, $"share-export-{theme}", ticks: 150);
+    vm.ShowDialog(null);
     window.Close();
 }
 Console.WriteLine("Скриншоты: " + outDir);
@@ -137,10 +157,10 @@ static void FillTester(TesterViewModel t)
 static void FillLogs()
 {
     Log.Info("Программа", "ByeDPI PC 1.0.0 запущена с правами администратора");
-    Log.Info("ciadpi", "Запуск: ciadpi -i 127.0.0.1 -p 1080 -o1 -r-5+se -a1 -At,r,s -s1+s -d3+s -r1+s -a1");
-    Log.Info("sing-box", "+0300 2026-10-23 21:40:12 INFO inbound/tun[tun-in]: started at ByeDPI");
-    Log.Info("sing-box", "+0300 2026-10-23 21:40:12 INFO sing-box started (0.41s)");
-    Log.Info("Подключение", "Подключено (TUN)");
+    Log.Info("Движки", "TCP timestamps (для стратегий zapret): включены");
+    Log.Info("zapret", "Запуск: winws --wf-tcp=80,443 --wf-udp=443 --filter-tcp=80,443 --hostlist=hosts.txt --dpi-desync=hostfakesplit --dpi-desync-fooling=ts,md5sig …");
+    Log.Info("zapret", "windivert initialized. capture is started.");
+    Log.Info("Подключение", "Подключено (zapret)");
     Log.Info("Автоподбор", "Напрямую не открываются 14 из 22: youtube.com, discord.com, instagram.com, rutracker.org …");
     Log.Info("Автоподбор", "Текущая стратегия открывает 14 из 14 — подбор не нужен");
     Log.Warn("Маршруты", "«Telegram»: внешний прокси не настроен, используется обход DPI.");

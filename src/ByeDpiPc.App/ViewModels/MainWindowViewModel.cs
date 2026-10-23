@@ -55,7 +55,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         Editor = new EditorViewModel(host);
         Tester = new TesterViewModel(host);
         Logs = new LogsViewModel(host, ShowDialog);
-        SettingsPage = new SettingsViewModel(host, ApplyTheme);
+        SettingsPage = new SettingsViewModel(host, ApplyTheme, () => ShareExport(), () => ShareImport());
 
         Add(PageKind.Home, "Главная", "Icon.HomeOutline", Home);
         Add(PageKind.Apps, "Приложения", "Icon.Apps", Apps);
@@ -84,6 +84,15 @@ public sealed partial class MainWindowViewModel : ViewModelBase
 
     [RelayCommand]
     private void CloseDialog() => Dialog = null;
+
+    [RelayCommand]
+    public void ShareExport() => Dialog = new ShareExportViewModel(Host, () => Dialog = null);
+
+    [RelayCommand]
+    public void ShareImport() => Dialog = new ShareImportViewModel(Host, () => Dialog = null);
+
+    /// <summary>Импорт из перетащенного файла или вставленного текста.</summary>
+    public void ImportText(string text) => Dialog = new ShareImportViewModel(Host, () => Dialog = null, text);
 
     [RelayCommand]
     private void ToggleTheme()

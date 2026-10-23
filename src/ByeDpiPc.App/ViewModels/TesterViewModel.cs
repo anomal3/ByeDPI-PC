@@ -43,15 +43,15 @@ public sealed partial class TesterViewModel : ViewModelBase
 
     public string SitesInfo => RuleItemViewModel.Plural(_host.Settings.TestSites.Count, "сайт", "сайта", "сайтов") + " из «Списки → Сайты для проверки»";
 
-    public override void OnShown() => OnPropertyChanged(nameof(SitesInfo));
+    public bool IsZapret => _host.Settings.Engine == EngineKind.Zapret;
 
-    private List<string> Candidates()
+    public override void OnShown()
     {
-        var list = _host.Settings.Strategies.Select(s => s.Arguments).ToList();
-        list.AddRange(Presets.DefaultStrategies.Select(s => s.Arguments));
-        if (IncludeByeByeDpiSet) list.AddRange(Presets.LoadTestStrategies());
-        return list.Where(s => !string.IsNullOrWhiteSpace(s)).Distinct().ToList();
+        OnPropertyChanged(nameof(SitesInfo));
+        OnPropertyChanged(nameof(IsZapret));
     }
+
+    private List<string> Candidates() => Presets.Candidates(_host.Settings, _host.Settings.Engine, IncludeByeByeDpiSet);
 
     [RelayCommand]
     private async Task Start()
@@ -72,14 +72,22 @@ public sealed partial class TesterViewModel : ViewModelBase
         DirectSummary = null;
         Progress = 0;
         var sw = Stopwatch.StartNew();
+        var engine = _host.Settings.Engine;
         var tester = new StrategyTester
         {
+            Engine = engine,
             Parallel = _host.Settings.TestParallel,
             Timeout = TimeSpan.FromSeconds(_host.Settings.TestTimeoutSec),
             FakeSni = _host.Settings.FakeSni,
         };
+        var suspended = false;
         try
         {
+            if (engine == EngineKind.Zapret && _host.Connection.IsConnected)
+            {
+                await _host.SuspendEngineAsync();
+                suspended = true;
+            }
             PhaseText = "Шаг 1 из 2: проверяю сайты напрямую, без обхода…";
             ProgressText = "";
             var direct = await Task.Run(() => tester.CheckDirectAsync(sites, _cts.Token));
@@ -90,7 +98,9 @@ public sealed partial class TesterViewModel : ViewModelBase
                 : $"Напрямую не открываются {blocked} из {direct.Count} сайтов.";
 
             var candidates = Candidates();
-            PhaseText = $"Шаг 2 из 2: проверяю {candidates.Count} стратегий через обход…";
+            PhaseText = engine == EngineKind.Zapret
+                ? $"Шаг 2 из 2: проверяю {candidates.Count} стратегий zapret по очереди…"
+                : $"Шаг 2 из 2: проверяю {candidates.Count} стратегий через обход…";
             var progress = new Progress<TestProgress>(p =>
             {
                 Progress = (double)p.Done / p.Total;
@@ -115,6 +125,7 @@ public sealed partial class TesterViewModel : ViewModelBase
         }
         finally
         {
+            if (suspended) await _host.ResumeEngineAsync();
             IsRunning = false;
             _cts.Dispose();
             _cts = null;
@@ -144,18 +155,25 @@ public sealed partial class TesterViewModel : ViewModelBase
     private void Apply(StrategyResultItem item)
     {
         var s = _host.Settings;
-        var existing = s.Strategies.FirstOrDefault(p => p.Arguments == item.Result.Arguments);
+        var engine = s.Engine;
+        var existing = s.EngineStrategies().FirstOrDefault(p => p.Arguments == item.Result.Arguments);
         if (existing == null)
         {
-            existing = s.Strategies.FirstOrDefault(p => p.Name == Presets.AutoProfileName);
+            existing = s.EngineStrategies().FirstOrDefault(p => p.Name == Presets.AutoProfileName);
             if (existing == null)
             {
-                existing = new StrategyProfile(Presets.AutoProfileName, item.Result.Arguments);
+                existing = new StrategyProfile(Presets.AutoProfileName, item.Result.Arguments, engine);
                 s.Strategies.Insert(0, existing);
             }
             existing.Arguments = item.Result.Arguments;
         }
-        s.ActiveStrategy = existing.Name;
+        s.SetActiveName(engine, existing.Name);
+        // Запомнить как подобранную: сайты, которые были заблокированы и открылись.
+        var opened = item.Result.Sites.Where(x => x.Ok).Select(x => x.Site)
+            .Where(x => DirectSites.Any(d => !d.Ok && d.Site == x)).Take(6).ToList();
+        s.Tuned.RemoveAll(t => t.Engine == engine);
+        s.Tuned.Add(new TunedStrategy { Engine = engine, Arguments = item.Result.Arguments, Sites = opened, Time = DateTime.Now });
+        _host.StrategyBroken = false;
         s.LastTuned = DateTime.Now;
         s.LastTuneSummary = $"Выбрана в «Подборе»: {item.Result.Success} из {item.Result.Total} сайтов";
         _host.Save();

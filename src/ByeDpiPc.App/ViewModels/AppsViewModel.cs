@@ -26,13 +26,25 @@ public sealed partial class AppsViewModel : ViewModelBase
         _host = host;
         _showDialog = showDialog;
         Reload();
-        host.SettingsChanged += () => IsProxyMode = host.Settings.Mode == EngineMode.ProxyOnly;
-        IsProxyMode = host.Settings.Mode == EngineMode.ProxyOnly;
+        host.SettingsChanged += UpdateHint;
+        host.RulesChanged += Reload;
+        UpdateHint();
+    }
+
+    [ObservableProperty] private string _processHint = "";
+
+    private void UpdateHint()
+    {
+        var s = _host.Settings;
+        IsProxyMode = s.Engine == EngineKind.Zapret || s.Mode == EngineMode.ProxyOnly;
+        ProcessHint = s.Engine == EngineKind.Zapret
+            ? "Движок zapret работает по доменам и подсетям, программы он не различает. У встроенных наборов домены уже есть; для своей программы добавьте её домены (раскройте правило). Нужны правила именно по программам — выберите в настройках движок byedpi и режим TUN."
+            : "Сейчас режим «Только прокси»: работают только домены (через системный прокси в браузерах). Чтобы направить программу целиком, включите режим TUN в настройках — или укажите в самой программе SOCKS5-прокси 127.0.0.1:1080 (например, Telegram: Настройки → Продвинутые → Тип соединения).";
     }
 
     public override void OnShown()
     {
-        IsProxyMode = _host.Settings.Mode == EngineMode.ProxyOnly;
+        UpdateHint();
         OnPropertyChanged(nameof(IsWhitelist));
         OnPropertyChanged(nameof(IsBlacklist));
         OnPropertyChanged(nameof(IsAll));

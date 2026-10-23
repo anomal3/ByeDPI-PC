@@ -10,7 +10,8 @@
         Width="1060" Height="720"
         MinWidth="900" MinHeight="620"
         MaxWidth="1360" MaxHeight="940"
-        WindowStartupLocation="CenterScreen">
+        WindowStartupLocation="CenterScreen"
+        DragDrop.AllowDrop="True">
 
   <Window.DataTemplates>
     <DataTemplate DataType="vm:HomeViewModel"><v:HomeView /></DataTemplate>
@@ -22,6 +23,8 @@
     <DataTemplate DataType="vm:SettingsViewModel"><v:SettingsView /></DataTemplate>
     <DataTemplate DataType="vm:AppPickerViewModel"><v:AppPickerView /></DataTemplate>
     <DataTemplate DataType="vm:DiagnosticsViewModel"><v:DiagnosticsView /></DataTemplate>
+    <DataTemplate DataType="vm:ShareExportViewModel"><v:ShareExportView /></DataTemplate>
+    <DataTemplate DataType="vm:ShareImportViewModel"><v:ShareImportView /></DataTemplate>
   </Window.DataTemplates>
 
   <Panel>

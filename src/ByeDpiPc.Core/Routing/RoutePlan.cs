@@ -77,6 +77,21 @@ public sealed class RoutePlan
     /// Чёрный список: отмеченные идут напрямую (внешний прокси сохраняется), остальное — через обход.
     /// Белый список и «Нет»: маршрут правила как есть.
     /// </summary>
+    /// <summary>
+    /// План только для внешнего прокси (движок zapret сам обходит DPI, а sing-box нужен лишь для правил
+    /// с маршрутом «Внешний прокси»): всё остальное — напрямую.
+    /// </summary>
+    public RoutePlan UpstreamOnly()
+    {
+        var p = new RoutePlan { Final = RouteMode.Direct, UpstreamProxy = UpstreamProxy };
+        foreach (var x in Upstream.Processes) p.Upstream.Processes.Add(x);
+        foreach (var x in Upstream.Domains) p.Upstream.Domains.Add(x);
+        foreach (var x in Upstream.IpCidrs) p.Upstream.IpCidrs.Add(x);
+        return p;
+    }
+
+    public bool HasUpstreamTargets => UpstreamProxy != null && !Upstream.IsEmpty;
+
     public static RouteMode EffectiveRoute(RouteMode ruleRoute, FilterMode filter) =>
         filter == FilterMode.Blacklist && ruleRoute == RouteMode.ByeDpi ? RouteMode.Direct : ruleRoute;
 

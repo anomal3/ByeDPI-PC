@@ -20,6 +20,12 @@ public static class Diagnostics
         var singBox = TunController.FindExecutable();
         items.Add(new(singBox != null || s.Mode == EngineMode.ProxyOnly, "Движок sing-box (для TUN)",
             singBox ?? "Не найден. Без него работает только режим «Только прокси»."));
+        if (OperatingSystem.IsWindows())
+        {
+            var winws = ZapretController.FindExecutable();
+            items.Add(new(winws != null || s.Engine != EngineKind.Zapret, "Движок zapret (winws)",
+                winws ?? "Не найден. Скачайте сборку программы целиком или выберите движок byedpi."));
+        }
 
         var vpn = VpnDetector.ActiveVpnAdapters();
         items.Add(new(vpn.Count == 0, "Другие VPN",
@@ -27,10 +33,10 @@ public static class Diagnostics
 
         items.Add(new(connection.IsConnected, "Подключение",
             connection.IsConnected
-                ? $"Подключено, режим: {(connection.ActiveMode == EngineMode.Tun ? "TUN" : "Только прокси")}"
+                ? $"Подключено, движок: {connection.ModeTitle}"
                 : connection.ErrorMessage ?? "Сейчас не подключено — часть проверок пропущена."));
 
-        if (connection.IsConnected)
+        if (connection.IsConnected && connection.ActiveEngine == EngineKind.ByeDpi)
         {
             var listening = NetUtil.IsPortBusy(s.SocksPort);
             items.Add(new(listening, $"Прокси 127.0.0.1:{s.SocksPort}", listening ? "Принимает подключения" : "Порт не слушается — ciadpi не работает"));
@@ -55,14 +61,16 @@ public static class Diagnostics
 
         var sites = s.TestSites.Take(8).ToList();
         var timeout = TimeSpan.FromSeconds(Math.Max(3, s.TestTimeoutSec));
-        using (var direct = new SiteChecker(null, timeout))
+        if (!(connection.IsConnected && connection.ActiveEngine == EngineKind.Zapret))
         {
+            using var direct = new SiteChecker(null, timeout);
             var r = await direct.CheckAllAsync(sites, 8, ct);
             items.Add(new(null, "Сайты напрямую", Describe(r)));
         }
-        if (connection.IsConnected && NetUtil.IsPortBusy(s.SocksPort))
+        if (connection.IsConnected && (connection.ActiveEngine == EngineKind.Zapret || NetUtil.IsPortBusy(s.SocksPort)))
         {
-            using var via = new SiteChecker(s.SocksPort, timeout);
+            // zapret перехватывает трафик сам — проверяем «напрямую»; byedpi — через SOCKS.
+            using var via = new SiteChecker(connection.ActiveEngine == EngineKind.Zapret ? null : s.SocksPort, timeout);
             var r = await via.CheckAllAsync(sites, 8, ct);
             items.Add(new(r.Count(x => x.Ok) >= r.Count(x => !x.Ok), "Сайты через обход", Describe(r) +
                 (r.Any(x => !x.Ok) ? "\nЕсли многие сайты не открываются — подберите другую стратегию на вкладке «Подбор»." : "")));

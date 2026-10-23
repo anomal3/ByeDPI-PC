@@ -1,30 +1,27 @@
-using System.IO.Pipes;
 using System.Text.RegularExpressions;
 
 namespace ByeDpiPc.Core.Engine;
 
-/// <summary>
-/// Управляет sing-box в режиме TUN. Если программа уже запущена с правами администратора —
-/// sing-box запускается напрямую, иначе через помощника <see cref="TunHost"/> (один запрос UAC на подключение).
-/// </summary>
-public sealed partial class TunController : IAsyncDisposable
+/// <summary>Управляет sing-box в режиме TUN (через <see cref="EngineHost"/>: права администратора нужны для адаптера).</summary>
+public sealed partial class TunController
 {
     public const string Source = "sing-box";
 
-    private ChildProcess? _direct;
-    private NamedPipeServerStream? _pipe;
-    private StreamWriter? _writer;
-    private CancellationTokenSource? _readCts;
-    private TaskCompletionSource<bool>? _startedTcs;
     private readonly Queue<string> _recent = new();
-    private volatile bool _stopping;
+    private TaskCompletionSource<bool>? _startedTcs;
+    private string? _config;
+    private volatile bool _running;
 
     /// <summary>sing-box завершился сам (не по нашей команде).</summary>
     public event Action<int>? ExitedUnexpectedly;
 
-    public bool IsRunning { get; private set; }
+    public bool IsRunning => _running;
 
-    public static string? FindExecutable() => AppPaths.FindEngine("sing-box");
+    public static string? FindExecutable()
+    {
+        var local = Path.Combine(AppPaths.EngineDir, AppPaths.ExeName("sing-box"));
+        return File.Exists(local) ? local : null;
+    }
 
     public static string RequireExecutable() =>
         FindExecutable() ?? throw new UserFacingException(
@@ -51,44 +48,12 @@ public sealed partial class TunController : IAsyncDisposable
     {
         var singBox = RequireExecutable();
         await CheckConfigAsync(singBox, config);
-        _stopping = false;
+        _config = config;
         lock (_recent) _recent.Clear();
         _startedTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        if (Elevation.IsElevated)
-        {
-            var p = ChildProcess.Start(singBox, new[] { "run", "-c", config, "--disable-color" }, Source, logOutput: false);
-            _direct = p;
-            p.Output += OnLine;
-            p.Exited += code => OnExited(code);
-        }
-        else
-        {
-            var name = $"byedpi-pc-tun-{Environment.ProcessId}-{Guid.NewGuid():N}"[..40];
-            _pipe = new NamedPipeServerStream(name, PipeDirection.InOut, 1, PipeTransmissionMode.Byte, PipeOptions.Asynchronous);
-            var (file, args) = Elevation.SelfCommand();
-            args.AddRange(new[] { TunHost.Flag, TunHost.PipePathForClient(name), singBox, config });
-            Log.Info(Source, "Запрашиваю права администратора для TUN…");
-            Elevation.StartElevated(file, args);
-
-            using (var wait = CancellationTokenSource.CreateLinkedTokenSource(ct))
-            {
-                wait.CancelAfter(TimeSpan.FromSeconds(90));
-                try
-                {
-                    await _pipe.WaitForConnectionAsync(wait.Token);
-                }
-                catch (OperationCanceledException) when (!ct.IsCancellationRequested)
-                {
-                    await DisposePipeAsync();
-                    throw new UserFacingException("Помощник TUN не запустился.",
-                        "Не дождался ответа от процесса с правами администратора. Возможно, окно UAC было закрыто. Попробуйте подключиться ещё раз.");
-                }
-            }
-            _writer = new StreamWriter(_pipe) { AutoFlush = true };
-            _readCts = new CancellationTokenSource();
-            _ = ReadLoopAsync(new StreamReader(_pipe), _readCts.Token);
-        }
+        await EngineHost.Instance.StartAsync(Source, singBox, new[] { "run", "-c", config, "--disable-color" },
+            AppPaths.EngineDir, OnLine, OnExited, ct);
 
         // sing-box пишет «sing-box started», когда TUN поднят.
         var finished = await Task.WhenAny(_startedTcs.Task, Task.Delay(TimeSpan.FromSeconds(25), ct));
@@ -99,69 +64,20 @@ public sealed partial class TunController : IAsyncDisposable
             throw new UserFacingException("sing-box не смог поднять TUN.",
                 Explain(details) + (details.Length > 0 ? "\n\nПоследние сообщения sing-box:\n" + details : ""));
         }
-        IsRunning = true;
+        _running = true;
     }
 
-    /// <summary>Перезапуск после изменения конфига (без повторного UAC).</summary>
+    /// <summary>Перезапуск после изменения конфига (без повторного UAC: помощник уже запущен).</summary>
     public async Task RestartAsync(string config)
     {
-        if (_writer != null)
-        {
-            await CheckConfigAsync(RequireExecutable(), config);
-            _startedTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-            _stopping = true;
-            await _writer.WriteLineAsync("RESTART");
-            var finished = await Task.WhenAny(_startedTcs.Task, Task.Delay(TimeSpan.FromSeconds(25)));
-            _stopping = false;
-            if (finished != _startedTcs.Task || !_startedTcs.Task.Result)
-                throw new UserFacingException("sing-box не перезапустился.", RecentLog());
-            return;
-        }
         await StopAsync();
         await StartAsync(config);
     }
 
     public async Task StopAsync()
     {
-        _stopping = true;
-        IsRunning = false;
-        if (_direct != null)
-        {
-            await _direct.StopAsync();
-            _direct.Dispose();
-            _direct = null;
-        }
-        if (_writer != null)
-        {
-            try
-            {
-                await _writer.WriteLineAsync("STOP");
-                // Ждём, пока помощник закроет канал (он сам дождётся остановки sing-box).
-                for (int i = 0; i < 50 && _pipe is { IsConnected: true }; i++) await Task.Delay(100);
-            }
-            catch { /* помощник уже закрыт */ }
-        }
-        await DisposePipeAsync();
-    }
-
-    private async Task ReadLoopAsync(StreamReader reader, CancellationToken ct)
-    {
-        try
-        {
-            while (!ct.IsCancellationRequested && await reader.ReadLineAsync(ct) is { } line)
-            {
-                if (line.StartsWith("LOG ")) OnLine(line[4..]);
-                else if (line.StartsWith("EXITED ")) OnExited(int.TryParse(line[7..], out var c) ? c : -1);
-                else if (line.StartsWith("ERROR ")) Log.Error(Source, line[6..]);
-            }
-        }
-        catch { /* канал закрыт */ }
-        if (!_stopping && IsRunning)
-        {
-            IsRunning = false;
-            Log.Error(Source, "Помощник TUN неожиданно завершился.");
-            ExitedUnexpectedly?.Invoke(-1);
-        }
+        _running = false;
+        await EngineHost.Instance.StopAsync(Source);
     }
 
     private void OnLine(string line)
@@ -179,13 +95,10 @@ public sealed partial class TunController : IAsyncDisposable
     private void OnExited(int code)
     {
         _startedTcs?.TrySetResult(false);
-        if (_stopping) return;
-        if (IsRunning)
-        {
-            IsRunning = false;
-            Log.Error(Source, $"sing-box завершился с кодом {code}.");
-            ExitedUnexpectedly?.Invoke(code);
-        }
+        if (!_running) return;
+        _running = false;
+        Log.Error(Source, $"sing-box завершился с кодом {code}.");
+        ExitedUnexpectedly?.Invoke(code);
     }
 
     private string RecentLog()
@@ -203,24 +116,6 @@ public sealed partial class TunController : IAsyncDisposable
             return "Адаптер или порт уже заняты — возможно, запущен другой VPN/TUN-клиент. Закройте его и попробуйте снова.";
         return "Проверьте, не запущены ли другие VPN- или прокси-программы, и попробуйте ещё раз. Если не помогает — переключитесь в режим «Только прокси».";
     }
-
-    private async Task DisposePipeAsync()
-    {
-        _readCts?.Cancel();
-        _readCts = null;
-        if (_writer != null)
-        {
-            try { await _writer.DisposeAsync(); } catch { }
-            _writer = null;
-        }
-        if (_pipe != null)
-        {
-            try { await _pipe.DisposeAsync(); } catch { }
-            _pipe = null;
-        }
-    }
-
-    public async ValueTask DisposeAsync() => await StopAsync();
 
     [GeneratedRegex(@"\x1B\[[0-9;]*[A-Za-z]")]
     private static partial Regex AnsiRegex();

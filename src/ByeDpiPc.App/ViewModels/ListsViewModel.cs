@@ -25,6 +25,7 @@ public sealed partial class ListsViewModel : ViewModelBase
         _host = host;
         _timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(700) };
         _timer.Tick += (_, _) => { _timer.Stop(); Commit(); };
+        host.RulesChanged += Load;
         Load();
     }
 

@@ -12,11 +12,11 @@ internal static class Program
     [STAThread]
     public static int Main(string[] args)
     {
-        // Режим помощника TUN (запущен с правами администратора): без окна, только sing-box.
-        if (args.Length > 0 && args[0] == TunHost.Flag)
+        // Режим помощника с правами администратора (sing-box, winws): без окна.
+        if (args.Length > 0 && args[0] == ElevatedHost.Flag)
         {
             Log.FileEnabled = false;
-            return TunHost.RunAsync(args).GetAwaiter().GetResult();
+            return ElevatedHost.RunAsync(args).GetAwaiter().GetResult();
         }
 
         StartInTray = args.Contains("--tray");

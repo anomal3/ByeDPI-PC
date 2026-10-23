@@ -87,21 +87,7 @@ public static class SingBoxConfigBuilder
                 ["type"] = "socks", ["tag"] = "byedpi", ["server"] = "127.0.0.1",
                 ["server_port"] = s.SocksPort, ["version"] = "5",
             });
-        if (plan.UpstreamProxy is { } u)
-        {
-            var o = new JsonObject
-            {
-                ["type"] = u.Kind == UpstreamKind.Socks5 ? "socks" : "http",
-                ["tag"] = "upstream",
-                ["server"] = u.Host,
-                ["server_port"] = u.Port,
-            };
-            if (u.Kind == UpstreamKind.Socks5) o["version"] = "5";
-            if (u.User != null) o["username"] = u.User;
-            if (u.Password != null) o["password"] = u.Password;
-            if (u.Kind == UpstreamKind.Https) o["tls"] = new JsonObject { ["enabled"] = true, ["server_name"] = u.Host };
-            list.Add(o);
-        }
+        if (plan.UpstreamProxy is { } u) list.Add(u.ToSingBoxOutbound());
         return list;
     }
 
@@ -153,6 +139,26 @@ public static class SingBoxConfigBuilder
         }
         foreach (var (key, values) in groups)
             rules.Add(new JsonObject { [key] = values, ["outbound"] = outbound });
+    }
+
+    /// <summary>
+    /// Локальный мост для режима «Только прокси»: SOCKS/HTTP на 127.0.0.1:port → внешний прокси (VLESS и др.).
+    /// Запускается без прав администратора.
+    /// </summary>
+    public static string BuildLocalBridge(UpstreamProxy upstream, int port)
+    {
+        var root = new JsonObject
+        {
+            ["log"] = new JsonObject { ["level"] = "warn", ["timestamp"] = true },
+            ["dns"] = new JsonObject { ["servers"] = new JsonArray(new JsonObject { ["tag"] = "local", ["type"] = "local" }) },
+            ["inbounds"] = new JsonArray(new JsonObject
+            {
+                ["type"] = "mixed", ["tag"] = "bridge-in", ["listen"] = "127.0.0.1", ["listen_port"] = port,
+            }),
+            ["outbounds"] = new JsonArray(upstream.ToSingBoxOutbound("upstream")),
+            ["route"] = new JsonObject { ["final"] = "upstream", ["default_domain_resolver"] = "local" },
+        };
+        return root.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
     }
 
     internal static IEnumerable<string> ProcessNames(IEnumerable<string> names, bool windows)

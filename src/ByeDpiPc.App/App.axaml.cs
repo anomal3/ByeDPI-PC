@@ -48,9 +48,13 @@ public partial class App : Application
                 SingleInstance.ActivationRequested += () => Dispatcher.UIThread.Post(ShowWindow);
                 _host.PropertyChanged += (_, e) =>
                 {
-                    if (e.PropertyName is nameof(AppHost.State) or nameof(AppHost.IsTuning)) UpdateTray();
+                    if (e.PropertyName is nameof(AppHost.State) or nameof(AppHost.IsTuning) or nameof(AppHost.StrategyBroken)) UpdateTray();
                 };
                 _host.StrategiesChanged += BuildTrayMenu;
+
+                _host.ExitApp = ExitAsync;
+                if (settings.CheckUpdates)
+                    DispatcherTimer.RunOnce(() => _ = _host.CheckUpdatesAsync(manual: false), TimeSpan.FromSeconds(8));
 
                 var hidden = Program.StartInTray && settings.StartMinimized;
                 if (!hidden) _window.Show();
@@ -80,7 +84,7 @@ public partial class App : Application
         menu.Add(toggle);
 
         var strategies = new NativeMenu();
-        foreach (var s in _host.Settings.Strategies)
+        foreach (var s in _host.Settings.EngineStrategies())
         {
             var item = new NativeMenuItem(s.Name)
             {
@@ -122,6 +126,7 @@ public partial class App : Application
         var (icon, text) = _host.State switch
         {
             ConnectionState.Connected when _host.IsTuning => ("tray-busy", "ByeDPI PC — подбор стратегии…"),
+            ConnectionState.Connected when _host.StrategyBroken => ("tray-error", "ByeDPI PC — обход перестал работать, подберите стратегию"),
             ConnectionState.Connected => ("tray-on", "ByeDPI PC — подключено"),
             ConnectionState.Connecting or ConnectionState.Disconnecting => ("tray-busy", "ByeDPI PC — подключение…"),
             ConnectionState.Error => ("tray-error", "ByeDPI PC — ошибка: " + _host.Connection.ErrorMessage),

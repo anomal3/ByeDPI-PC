@@ -36,12 +36,31 @@ try {
     Expand-Archive "$tmp\sing-box.zip" "$tmp\sing-box" -Force
     Copy-Item (Get-ChildItem "$tmp\sing-box" -Recurse -Filter sing-box.exe | Select-Object -First 1).FullName $dest -Force
 
+    if ($Rid -eq 'win-x64') {
+        $z = $Engines.Zapret
+        Get-Checked $z.url "$tmp\zapret.zip" $z.sha256
+        Expand-Archive "$tmp\zapret.zip" "$tmp\zapret" -Force
+        $zdest = Join-Path $dest 'zapret'
+        New-Item -ItemType Directory -Force -Path $zdest | Out-Null
+        $bin = (Get-ChildItem "$tmp\zapret" -Recurse -Directory -Filter 'windows-x86_64' | Select-Object -First 1).FullName
+        foreach ($f in 'winws.exe', 'WinDivert.dll', 'WinDivert64.sys', 'cygwin1.dll') { Copy-Item (Join-Path $bin $f) $zdest -Force }
+        foreach ($name in $Engines.Fakes.Keys) {
+            Get-Checked ($Engines.FakeBase + $name) (Join-Path $zdest $name) $Engines.Fakes[$name]
+        }
+    }
+
     New-Item -ItemType Directory -Force -Path "$dest\LICENSES" | Out-Null
     Invoke-WebRequest "https://raw.githubusercontent.com/hufrea/byedpi/main/LICENSE" -OutFile "$dest\LICENSES\byedpi-MIT.txt" -UseBasicParsing
     Copy-Item (Get-ChildItem "$tmp\sing-box" -Recurse -Filter LICENSE | Select-Object -First 1).FullName "$dest\LICENSES\sing-box-GPL-3.0.txt" -Force
+    if ($Rid -eq 'win-x64') {
+        Copy-Item (Get-ChildItem "$tmp\zapret" -Recurse -Filter LICENSE.txt | Select-Object -First 1).FullName "$dest\LICENSES\zapret-MIT.txt" -Force
+        Invoke-WebRequest "https://raw.githubusercontent.com/Flowseal/zapret-discord-youtube/main/LICENSE.txt" -OutFile "$dest\LICENSES\zapret-discord-youtube-MIT.txt" -UseBasicParsing
+    }
     @"
 byedpi $($Engines.ByedpiVersion) — https://github.com/hufrea/byedpi (MIT)
 sing-box $($Engines.SingboxVersion) — https://github.com/SagerNet/sing-box (GPL-3.0-or-later), включает wintun (https://www.wintun.net)
+zapret $($Engines.ZapretVersion) — https://github.com/bol-van/zapret (MIT), драйвер WinDivert (https://reqrypt.org/windivert.html, LGPL-3.0 / GPL-2.0)
+Фейковые пакеты — https://github.com/Flowseal/zapret-discord-youtube (MIT)
 "@ | Set-Content "$dest\LICENSES\README.txt" -Encoding UTF8
 
     Write-Host "Готово: $dest" -ForegroundColor Green

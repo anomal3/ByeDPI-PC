@@ -36,7 +36,7 @@
       <StackPanel Spacing="4">
         <TextBlock Classes="h1" Text="Подбор стратегии" />
         <TextBlock Classes="muted" TextWrapping="Wrap"
-                   Text="Сначала сайты проверяются напрямую, затем через каждую стратегию (ваши + встроенные + набор из ByeByeDPI). Лучшую можно применить одной кнопкой." />
+                   Text="Сначала сайты проверяются напрямую, затем через каждую стратегию текущего движка (ваши и встроенные). Лучшую можно применить одной кнопкой — она запомнится." />
       </StackPanel>
 
       <Border Classes="card">
@@ -47,11 +47,13 @@
                 <TextBlock Classes="muted" Text="Таймаут, с" VerticalAlignment="Center" />
                 <NumericUpDown Value="{Binding Timeout}" Minimum="1" Maximum="30" Width="110" FormatString="0" IsEnabled="{Binding !IsRunning}" />
               </StackPanel>
-              <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,0,20,6">
+              <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,0,20,6" IsVisible="{Binding !IsZapret}">
                 <TextBlock Classes="muted" Text="Параллельно" VerticalAlignment="Center" />
                 <NumericUpDown Value="{Binding Parallel}" Minimum="1" Maximum="16" Width="110" FormatString="0" IsEnabled="{Binding !IsRunning}" />
               </StackPanel>
-              <CheckBox IsChecked="{Binding IncludeByeByeDpiSet}" Content="Набор ByeByeDPI (60 стратегий)" IsEnabled="{Binding !IsRunning}" Margin="0,0,0,6" />
+              <CheckBox IsChecked="{Binding IncludeByeByeDpiSet}" Content="Набор ByeByeDPI (60 стратегий)" IsEnabled="{Binding !IsRunning}" Margin="0,0,0,6" IsVisible="{Binding !IsZapret}" />
+              <TextBlock Classes="caption" VerticalAlignment="Center" Margin="0,0,0,6" IsVisible="{Binding IsZapret}" TextWrapping="Wrap"
+                         Text="Движок zapret: стратегии проверяются по очереди, обход на это время приостанавливается." />
             </WrapPanel>
             <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Top">
               <Button Classes="accent" Command="{Binding StartCommand}" IsVisible="{Binding !IsRunning}">

@@ -24,6 +24,7 @@ public sealed partial class EditorViewModel : ViewModelBase
     [ObservableProperty] private string? _selectedProfile;
     [ObservableProperty] private string _profileName = "";
     [ObservableProperty] private string _arguments = "";
+    [ObservableProperty] private string _googleArguments = "";
     [ObservableProperty] private bool _isSimpleMode = true;
     [ObservableProperty] private bool _simpleAvailable = true;
     [ObservableProperty] private string? _validation;
@@ -55,7 +56,14 @@ public sealed partial class EditorViewModel : ViewModelBase
     public bool IsFake => MethodIndex == (int)DesyncMethod.Fake;
     public bool IsOob => MethodIndex is (int)DesyncMethod.Oob or (int)DesyncMethod.DisOob;
     public bool HasMethod => MethodIndex != 0;
-    public bool IsActive => SelectedProfile == _host.Settings.ActiveStrategy;
+    public bool IsActive => SelectedProfile == _host.Settings.GetActiveName(Engine);
+    private EngineKind Engine => _host.Settings.Engine;
+    public bool IsZapret => Engine == EngineKind.Zapret;
+    public bool ComplexWarning => !SimpleAvailable && !IsZapret;
+    partial void OnSimpleAvailableChanged(bool value) => OnPropertyChanged(nameof(ComplexWarning));
+    public string EngineHint => IsZapret
+        ? "Стратегия — аргументы winws (zapret) для TCP 80/443. Профили для QUIC и голоса Discord программа добавляет сама."
+        : "Стратегия — это аргументы byedpi: как «запутать» первые пакеты соединения, чтобы фильтр провайдера не увидел адрес сайта. Можно хранить несколько стратегий и переключаться между ними на главной.";
 
     public string FakeSni
     {
@@ -84,7 +92,9 @@ public sealed partial class EditorViewModel : ViewModelBase
     {
         var keep = SelectedProfile;
         Profiles.Clear();
-        foreach (var p in _host.Settings.Strategies) Profiles.Add(p.Name);
+        foreach (var p in _host.Settings.EngineStrategies()) Profiles.Add(p.Name);
+        OnPropertyChanged(nameof(IsZapret));
+        OnPropertyChanged(nameof(EngineHint));
         SelectedProfile = keep != null && Profiles.Contains(keep) ? keep : _host.Settings.GetActiveStrategy()?.Name;
         LoadProfile();
     }
@@ -93,10 +103,11 @@ public sealed partial class EditorViewModel : ViewModelBase
 
     private void LoadProfile()
     {
-        var p = _host.Settings.Strategies.FirstOrDefault(s => s.Name == SelectedProfile);
+        var p = _host.Settings.EngineStrategies().FirstOrDefault(s => s.Name == SelectedProfile);
         _loading = true;
         ProfileName = p?.Name ?? "";
         Arguments = p?.Arguments ?? "";
+        GoogleArguments = p?.GoogleArguments ?? "";
         LoadSimple(Arguments);
         IsSimpleMode = SimpleAvailable;
         _loading = false;
@@ -107,7 +118,7 @@ public sealed partial class EditorViewModel : ViewModelBase
 
     private void LoadSimple(string args)
     {
-        var s = UiStrategy.TryParse(args);
+        var s = IsZapret ? null : UiStrategy.TryParse(args);
         SimpleAvailable = s != null;
         if (s == null)
         {
@@ -187,7 +198,7 @@ public sealed partial class EditorViewModel : ViewModelBase
                     Validation = null;
                 }
                 break;
-            case nameof(Arguments) or nameof(ProfileName):
+            case nameof(Arguments) or nameof(ProfileName) or nameof(GoogleArguments):
                 IsDirty = true;
                 Validation = null;
                 break;
@@ -202,7 +213,7 @@ public sealed partial class EditorViewModel : ViewModelBase
     [RelayCommand]
     private void SimpleMode()
     {
-        if (UiStrategy.TryParse(Arguments) == null)
+        if (IsZapret || UiStrategy.TryParse(Arguments) == null)
         {
             SimpleAvailable = false;
             return;
@@ -216,14 +227,15 @@ public sealed partial class EditorViewModel : ViewModelBase
     [RelayCommand]
     private void Save()
     {
-        var p = _host.Settings.Strategies.FirstOrDefault(s => s.Name == SelectedProfile);
+        var p = _host.Settings.EngineStrategies().FirstOrDefault(s => s.Name == SelectedProfile);
         if (p == null) return;
         var name = string.IsNullOrWhiteSpace(ProfileName) ? p.Name : ProfileName.Trim();
-        if (name != p.Name && _host.Settings.Strategies.Any(s => s.Name == name)) name += " (2)";
-        var wasActive = _host.Settings.ActiveStrategy == p.Name;
+        if (name != p.Name && _host.Settings.EngineStrategies().Any(s => s.Name == name)) name += " (2)";
+        var wasActive = _host.Settings.GetActiveName(Engine) == p.Name;
         p.Name = name;
         p.Arguments = Arguments.Trim();
-        if (wasActive) _host.Settings.ActiveStrategy = name;
+        p.GoogleArguments = IsZapret && !string.IsNullOrWhiteSpace(GoogleArguments) ? GoogleArguments.Trim() : null;
+        if (wasActive) _host.Settings.SetActiveName(Engine, name);
         _host.Save();
         IsDirty = false;
         SelectedProfile = null;
@@ -243,7 +255,8 @@ public sealed partial class EditorViewModel : ViewModelBase
     private void NewProfile()
     {
         var name = Unique("Новая стратегия");
-        _host.Settings.Strategies.Add(new StrategyProfile(name, new UiStrategy().ToArguments()));
+        var args = IsZapret ? Presets.LoadZapretStrategies()[0].Arguments : new UiStrategy().ToArguments();
+        _host.Settings.Strategies.Add(new StrategyProfile(name, args, Engine));
         _host.Save(apply: false);
         _host.NotifyStrategiesChanged();
         SelectedProfile = name;
@@ -254,7 +267,7 @@ public sealed partial class EditorViewModel : ViewModelBase
     private void Duplicate()
     {
         var name = Unique((ProfileName.Length > 0 ? ProfileName : "Стратегия") + " — копия");
-        _host.Settings.Strategies.Add(new StrategyProfile(name, Arguments));
+        _host.Settings.Strategies.Add(new StrategyProfile(name, Arguments, Engine));
         _host.Save(apply: false);
         _host.NotifyStrategiesChanged();
         SelectedProfile = name;
@@ -263,11 +276,12 @@ public sealed partial class EditorViewModel : ViewModelBase
     [RelayCommand]
     private void Delete()
     {
-        if (_host.Settings.Strategies.Count <= 1) return;
-        var p = _host.Settings.Strategies.FirstOrDefault(s => s.Name == SelectedProfile);
+        if (_host.Settings.EngineStrategies().Count() <= 1) return;
+        var p = _host.Settings.EngineStrategies().FirstOrDefault(s => s.Name == SelectedProfile);
         if (p == null) return;
         _host.Settings.Strategies.Remove(p);
-        if (_host.Settings.ActiveStrategy == p.Name) _host.Settings.ActiveStrategy = _host.Settings.Strategies[0].Name;
+        if (_host.Settings.GetActiveName(Engine) == p.Name)
+            _host.Settings.SetActiveName(Engine, _host.Settings.EngineStrategies().First().Name);
         _host.Save();
         SelectedProfile = null;
         _host.NotifyStrategiesChanged();
@@ -277,7 +291,7 @@ public sealed partial class EditorViewModel : ViewModelBase
     private void Revert() => LoadProfile();
 
     [RelayCommand]
-    private void OpenHelp() => Ui.Open("https://github.com/hufrea/byedpi#readme");
+    private void OpenHelp() => Ui.Open(IsZapret ? "https://github.com/bol-van/zapret/blob/master/docs/readme.md#nfqws" : "https://github.com/hufrea/byedpi#readme");
 
     [RelayCommand]
     private async Task Validate()
@@ -286,9 +300,19 @@ public sealed partial class EditorViewModel : ViewModelBase
         Validation = null;
         try
         {
-            var error = await Task.Run(() => CiadpiEngine.ValidateAsync(Arguments, _host.Settings.FakeSni));
+            string? error;
+            if (IsZapret)
+            {
+                var r = await Task.Run(() => new ByeDpiPc.Core.Testing.StrategyTester { Engine = EngineKind.Zapret }
+                    .TestOneAsync(Arguments, new[] { "youtube.com" }, CancellationToken.None));
+                error = r.Error;
+            }
+            else
+            {
+                error = await Task.Run(() => CiadpiEngine.ValidateAsync(Arguments, _host.Settings.FakeSni));
+            }
             ValidationOk = error == null;
-            Validation = error ?? "ciadpi запустился с этими аргументами — стратегия корректна.";
+            Validation = error ?? (IsZapret ? "winws запустился с этими аргументами — стратегия корректна." : "ciadpi запустился с этими аргументами — стратегия корректна.");
         }
         catch (Exception ex)
         {
@@ -304,7 +328,7 @@ public sealed partial class EditorViewModel : ViewModelBase
     private string Unique(string baseName)
     {
         var name = baseName;
-        for (int i = 2; _host.Settings.Strategies.Any(s => s.Name == name); i++) name = $"{baseName} {i}";
+        for (int i = 2; _host.Settings.EngineStrategies().Any(s => s.Name == name); i++) name = $"{baseName} {i}";
         return name;
     }
 }

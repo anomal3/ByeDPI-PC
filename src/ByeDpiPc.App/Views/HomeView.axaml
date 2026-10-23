@@ -103,6 +103,43 @@
         <TextBlock Classes="muted" Text="Сайты и приложения открываются через локальный обход DPI. Трафик не шифруется и никуда не уходит — это не VPN." TextWrapping="Wrap" />
       </StackPanel>
 
+      <!-- Обновление -->
+      <Border Classes="banner appear" IsVisible="{Binding Host.Update, Converter={x:Static ObjectConverters.IsNotNull}}">
+        <Grid ColumnDefinitions="Auto,*,Auto">
+          <PathIcon Data="{StaticResource Icon.Download}" Foreground="{DynamicResource AccentBrush}" Width="20" Height="20" Margin="0,0,12,0" />
+          <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="4">
+            <TextBlock Text="{Binding UpdateTitle}" FontWeight="SemiBold" />
+            <TextBlock Classes="caption" Text="{Binding Host.UpdateStatus}" IsVisible="{Binding Host.IsUpdating}" />
+            <ProgressBar Minimum="0" Maximum="1" Value="{Binding Host.UpdateProgress}" IsVisible="{Binding Host.IsUpdating}" />
+          </StackPanel>
+          <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" Margin="12,0,0,0" IsVisible="{Binding !Host.IsUpdating}">
+            <Button Classes="ghost" Command="{Binding OpenReleaseCommand}">
+              <StackPanel Orientation="Horizontal" Spacing="8"><PathIcon Data="{StaticResource Icon.FileDocumentOutline}" /><TextBlock Text="Что нового" /></StackPanel>
+            </Button>
+            <Button Classes="accent" Command="{Binding InstallUpdateCommand}">
+              <StackPanel Orientation="Horizontal" Spacing="8"><PathIcon Data="{StaticResource Icon.Download}" /><TextBlock Text="Обновить" /></StackPanel>
+            </Button>
+          </StackPanel>
+        </Grid>
+      </Border>
+
+      <!-- Запомненная стратегия перестала работать -->
+      <Border Classes="banner warning appear" IsVisible="{Binding Host.StrategyBroken}">
+        <Grid ColumnDefinitions="Auto,*,Auto">
+          <PathIcon Data="{StaticResource Icon.AlertOutline}" Foreground="{DynamicResource WarningBrush}" Width="20" Height="20" Margin="0,0,12,0" />
+          <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+            <TextBlock Text="Похоже, обход перестал работать" FontWeight="SemiBold" />
+            <TextBlock Classes="caption" TextWrapping="Wrap" Text="Сохранённая стратегия больше не открывает сайты — провайдер мог поменять фильтр. Подберите стратегию заново, это займёт пару минут." />
+          </StackPanel>
+          <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" Margin="12,0,0,0">
+            <Button Classes="ghost" Content="Позже" Command="{Binding DismissBrokenCommand}" />
+            <Button Classes="accent" Command="{Binding SearchNowCommand}">
+              <StackPanel Orientation="Horizontal" Spacing="8"><PathIcon Data="{StaticResource Icon.FlaskOutline}" /><TextBlock Text="Подобрать заново" /></StackPanel>
+            </Button>
+          </StackPanel>
+        </Grid>
+      </Border>
+
       <!-- Главная карточка с кнопкой -->
       <Border Classes="card" Padding="26,22">
         <Grid ColumnDefinitions="Auto,*">
@@ -152,9 +189,9 @@
               </Border>
               <Border Classes="soft" Margin="6,0,0,6">
                 <StackPanel Spacing="2">
-                  <TextBlock Classes="caption" Text="Локальный прокси" />
-                  <TextBlock Text="{Binding ProxyAddress}" FontWeight="SemiBold" FontFamily="{StaticResource MonoFont}" />
-                  <TextBlock Classes="caption" Text="SOCKS5 · только этот компьютер" />
+                  <TextBlock Classes="caption" Text="{Binding SecondTitle}" />
+                  <TextBlock Text="{Binding SecondValue}" FontWeight="SemiBold" />
+                  <TextBlock Classes="caption" Text="{Binding SecondHint}" TextTrimming="CharacterEllipsis" />
                 </StackPanel>
               </Border>
               <Border Classes="soft" Margin="0,6,6,0">

@@ -36,8 +36,55 @@
     <StackPanel Margin="32,26,32,32" Spacing="16" MaxWidth="900" HorizontalAlignment="Stretch">
       <TextBlock Classes="h1" Text="Настройки" />
 
+      <!-- Движок -->
+      <Border Classes="card" IsVisible="{Binding IsWindows}">
+        <StackPanel Spacing="12">
+          <TextBlock Classes="h2" Text="Движок обхода" />
+          <Grid ColumnDefinitions="*,*">
+            <RadioButton GroupName="engkind" IsChecked="{Binding EngineZapret}" Margin="0,0,6,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="0">
+              <RadioButton.Template>
+                <ControlTemplate>
+                  <Border Classes="mode" Cursor="Hand">
+                    <StackPanel Spacing="4">
+                      <StackPanel Orientation="Horizontal" Spacing="8">
+                        <PathIcon Data="{StaticResource Icon.LightningBolt}" Foreground="{DynamicResource AccentBrush}" />
+                        <TextBlock Text="zapret" FontWeight="SemiBold" />
+                        <Border Classes="chip" Background="{DynamicResource AccentSoftBrush}" Padding="7,1">
+                          <TextBlock Text="рекомендуется" Foreground="{DynamicResource AccentBrush}" FontSize="11" />
+                        </Border>
+                      </StackPanel>
+                      <TextBlock Classes="caption" TextWrapping="Wrap"
+                                 Text="Правит пакеты напрямую через драйвер WinDivert — на Windows пробивает больше сайтов (YouTube, Cloudflare). Работает для всех программ по доменам." />
+                    </StackPanel>
+                  </Border>
+                </ControlTemplate>
+              </RadioButton.Template>
+            </RadioButton>
+            <RadioButton Grid.Column="1" GroupName="engkind" IsChecked="{Binding EngineByeDpi}" Margin="6,0,0,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="0">
+              <RadioButton.Template>
+                <ControlTemplate>
+                  <Border Classes="mode" Cursor="Hand">
+                    <StackPanel Spacing="4">
+                      <StackPanel Orientation="Horizontal" Spacing="8">
+                        <PathIcon Data="{StaticResource Icon.ShieldCheckOutline}" Foreground="{DynamicResource AccentBrush}" />
+                        <TextBlock Text="byedpi" FontWeight="SemiBold" />
+                      </StackPanel>
+                      <TextBlock Classes="caption" TextWrapping="Wrap"
+                                 Text="Локальный SOCKS-прокси, как в ByeByeDPI на Android. Умеет правила по программам (режим TUN) и работу без прав администратора." />
+                    </StackPanel>
+                  </Border>
+                </ControlTemplate>
+              </RadioButton.Template>
+            </RadioButton>
+          </Grid>
+          <Border Classes="banner warning" IsVisible="{Binding ZapretMissing}">
+            <TextBlock TextWrapping="Wrap" Text="Файлы zapret не найдены в папке engine\zapret. Скачайте сборку программы целиком или используйте byedpi." />
+          </Border>
+        </StackPanel>
+      </Border>
+
       <!-- Режим работы -->
-      <Border Classes="card">
+      <Border Classes="card" IsVisible="{Binding EngineByeDpi}">
         <StackPanel Spacing="12">
           <TextBlock Classes="h2" Text="Режим работы" />
           <Grid ColumnDefinitions="*,*">
@@ -205,17 +252,18 @@
           </Button>
           <StackPanel IsVisible="{Binding ShowAdvanced}" Spacing="10" Classes="appear">
             <TextBlock Classes="muted" TextWrapping="Wrap"
-                       Text="Обход DPI не поможет, если провайдер блокирует сам IP-адрес сервера (так бывает с Telegram, Instagram, X). Для таких правил можно выбрать маршрут «Внешний прокси» — ваш собственный SOCKS5/HTTP-прокси." />
+                       Text="Обход DPI не поможет, если провайдер блокирует сам IP-адрес сервера (так бывает с Telegram). Для таких правил выберите маршрут «Внешний прокси» и вставьте сюда ключ: VLESS (Reality/TLS) или SOCKS5/HTTP. Ключ можно получить файлом доступа — «Импорт» ниже." />
             <Grid Classes="row" ColumnDefinitions="*,Auto">
               <TextBlock Text="Использовать внешний прокси" VerticalAlignment="Center" />
               <ToggleSwitch Grid.Column="1" IsChecked="{Binding UpstreamEnabled}" />
             </Grid>
             <Grid ColumnDefinitions="*,Auto" IsEnabled="{Binding UpstreamEnabled}">
-              <TextBox Classes="mono" Text="{Binding UpstreamUri}" Watermark="socks5://user:pass@1.2.3.4:1080" />
+              <TextBox Classes="mono" Text="{Binding UpstreamUri}" Watermark="vless://… или socks5://user:pass@1.2.3.4:1080" />
               <Button Grid.Column="1" Classes="soft" Command="{Binding CheckUpstreamCommand}" Margin="8,0,0,0" IsEnabled="{Binding !IsCheckingUpstream}">
                 <StackPanel Orientation="Horizontal" Spacing="8"><PathIcon Data="{StaticResource Icon.ShieldCheckOutline}" /><TextBlock Text="Проверить" /></StackPanel>
               </Button>
             </Grid>
+            <TextBlock Classes="caption" Text="{Binding UpstreamDescription}" />
             <Border Classes="banner" Classes.success="{Binding UpstreamCheckOk}" Classes.danger="{Binding !UpstreamCheckOk}"
                     IsVisible="{Binding UpstreamCheck, Converter={x:Static ObjectConverters.IsNotNull}}">
               <TextBlock Text="{Binding UpstreamCheck}" TextWrapping="Wrap" />
@@ -231,7 +279,50 @@
         </StackPanel>
       </Border>
 
-      <!-- О программе -->
+      <!-- Обмен настройками -->
+      <Border Classes="card">
+        <Grid ColumnDefinitions="*,Auto">
+          <StackPanel Spacing="2" VerticalAlignment="Center">
+            <TextBlock Classes="h2" Text="Обмен настройками" />
+            <TextBlock Classes="caption" TextWrapping="Wrap"
+                       Text="Поделитесь подобранной стратегией, правилами и ключом внешнего прокси с другом — файлом .bdpi или текстовым кодом. Файл можно просто перетащить в окно." />
+          </StackPanel>
+          <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" Margin="12,0,0,0" VerticalAlignment="Center">
+            <Button Classes="soft" Command="{Binding ImportCommand}">
+              <StackPanel Orientation="Horizontal" Spacing="8"><PathIcon Data="{StaticResource Icon.TrayArrowDown}" /><TextBlock Text="Импорт" /></StackPanel>
+            </Button>
+            <Button Classes="accent" Command="{Binding ExportCommand}">
+              <StackPanel Orientation="Horizontal" Spacing="8"><PathIcon Data="{StaticResource Icon.Upload}" /><TextBlock Text="Поделиться" /></StackPanel>
+            </Button>
+          </StackPanel>
+        </Grid>
+      </Border>
+
+      <!-- Обновления -->
+      <Border Classes="card">
+        <StackPanel>
+          <TextBlock Classes="h2" Text="Обновления" Margin="0,0,0,6" />
+          <Grid Classes="row" ColumnDefinitions="*,Auto">
+            <StackPanel>
+              <TextBlock Text="Проверять обновления при запуске" />
+              <TextBlock Classes="caption" Text="Новые версии берутся из релизов на GitHub. Обновление — одной кнопкой, настройки сохраняются." TextWrapping="Wrap" />
+            </StackPanel>
+            <ToggleSwitch Grid.Column="1" IsChecked="{Binding CheckUpdates}" />
+          </Grid>
+          <Grid ColumnDefinitions="*,Auto,Auto" Margin="0,6,0,0">
+            <TextBlock Classes="muted" Text="{Binding Host.UpdateStatus}" VerticalAlignment="Center" TextWrapping="Wrap" />
+            <Button Grid.Column="1" Classes="soft" Command="{Binding CheckUpdatesNowCommand}" IsEnabled="{Binding !Host.IsCheckingUpdate}" Margin="8,0,0,0">
+              <StackPanel Orientation="Horizontal" Spacing="8"><PathIcon Data="{StaticResource Icon.Refresh}" /><TextBlock Text="Проверить сейчас" /></StackPanel>
+            </Button>
+            <Button Grid.Column="2" Classes="accent" Command="{Binding InstallUpdateCommand}" Margin="8,0,0,0"
+                    IsVisible="{Binding Host.Update, Converter={x:Static ObjectConverters.IsNotNull}}" IsEnabled="{Binding !Host.IsUpdating}">
+              <StackPanel Orientation="Horizontal" Spacing="8"><PathIcon Data="{StaticResource Icon.Download}" /><TextBlock Text="Обновить" /></StackPanel>
+            </Button>
+          </Grid>
+        </StackPanel>
+      </Border>
+
+      <!-- О программе -->      <!-- О программе -->
       <Border Classes="card">
         <StackPanel Spacing="10">
           <StackPanel Orientation="Horizontal" Spacing="14">
@@ -242,7 +333,7 @@
             </StackPanel>
           </StackPanel>
           <TextBlock Classes="muted" TextWrapping="Wrap"
-                     Text="Основано на ByeByeDPI (romanvht, GPL-3.0). Движок обхода — byedpi (hufrea, MIT). Маршрутизация TUN — sing-box (SagerNet, GPL-3.0) с драйвером wintun. Интерфейс — Avalonia (MIT), шрифт Inter (OFL), иконки Material Design Icons (Apache 2.0) и Simple Icons (CC0)." />
+                     Text="Основано на ByeByeDPI (romanvht, GPL-3.0). Движок обхода — byedpi (hufrea, MIT). Второй движок — zapret (bol-van, MIT) с драйвером WinDivert и стратегиями из zapret-discord-youtube (Flowseal, MIT). Маршрутизация TUN — sing-box (SagerNet, GPL-3.0) с драйвером wintun. Интерфейс — Avalonia (MIT), шрифт Inter (OFL), иконки Material Design Icons (Apache 2.0) и Simple Icons (CC0)." />
           <SelectableTextBlock Classes="mono caption" Text="{Binding EngineInfo}" TextWrapping="Wrap" />
           <WrapPanel>
             <Button Classes="soft" Margin="0,0,8,8" Command="{Binding OpenUrlCommand}" CommandParameter="https://github.com/romanvht/ByeByeDPI">

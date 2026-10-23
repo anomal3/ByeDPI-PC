@@ -18,6 +18,16 @@ public enum FilterMode
     Blacklist,
 }
 
+/// <summary>Движок обхода.</summary>
+[JsonConverter(typeof(JsonStringEnumConverter<EngineKind>))]
+public enum EngineKind
+{
+    /// <summary>byedpi (ciadpi): локальный SOCKS-прокси, работает везде.</summary>
+    ByeDpi,
+    /// <summary>zapret (winws + WinDivert): правит пакеты напрямую, только Windows.</summary>
+    Zapret,
+}
+
 [JsonConverter(typeof(JsonStringEnumConverter<EngineMode>))]
 public enum EngineMode
 {
@@ -71,15 +81,34 @@ public sealed class StrategyProfile
 {
     public string Name { get; set; } = "";
     public string Arguments { get; set; } = "";
+    public EngineKind Engine { get; set; } = EngineKind.ByeDpi;
+    /// <summary>zapret: отдельная стратегия для YouTube/Google (у Google свой DPI-профиль у многих провайдеров).</summary>
+    public string? GoogleArguments { get; set; }
 
     public StrategyProfile() { }
-    public StrategyProfile(string name, string arguments) { Name = name; Arguments = arguments; }
+    public StrategyProfile(string name, string arguments, EngineKind engine = EngineKind.ByeDpi)
+    {
+        Name = name;
+        Arguments = arguments;
+        Engine = engine;
+    }
+}
+
+/// <summary>Запомненный результат автоподбора: чтобы не перебирать стратегии при каждом подключении.</summary>
+public sealed class TunedStrategy
+{
+    public EngineKind Engine { get; set; }
+    public string Arguments { get; set; } = "";
+    /// <summary>Сайты, которые были заблокированы напрямую и открылись через стратегию (для быстрой проверки).</summary>
+    public List<string> Sites { get; set; } = new();
+    public DateTime Time { get; set; }
 }
 
 public sealed class AppSettings
 {
     public int SchemaVersion { get; set; } = 1;
 
+    public EngineKind Engine { get; set; } = OperatingSystem.IsWindows() ? EngineKind.Zapret : EngineKind.ByeDpi;
     public EngineMode Mode { get; set; } = EngineMode.Tun;
     public FilterMode Filter { get; set; } = FilterMode.Whitelist;
     public int SocksPort { get; set; } = 1080;
@@ -105,6 +134,7 @@ public sealed class AppSettings
     /// <summary>SNI для фейковых пакетов (подставляется вместо {sni} в стратегиях).</summary>
     public string FakeSni { get; set; } = "www.iana.org";
     public string ActiveStrategy { get; set; } = "";
+    public string ActiveZapretStrategy { get; set; } = "";
     public List<StrategyProfile> Strategies { get; set; } = new();
 
     public List<AppRule> Rules { get; set; } = new();
@@ -126,11 +156,33 @@ public sealed class AppSettings
     /// <summary>Когда последний раз проверяли/подбирали стратегию (для показа на главной).</summary>
     public DateTime? LastTuned { get; set; }
     public string LastTuneSummary { get; set; } = "";
+    public List<TunedStrategy> Tuned { get; set; } = new();
+
+    /// <summary>Проверять обновления в релизах GitHub при запуске.</summary>
+    public bool CheckUpdates { get; set; } = true;
 
     public bool UpstreamEnabled { get; set; }
     /// <summary>socks5://[user:pass@]host:port или http(s)://…</summary>
     public string UpstreamUri { get; set; } = "";
 
-    public StrategyProfile? GetActiveStrategy() =>
-        Strategies.FirstOrDefault(s => s.Name == ActiveStrategy) ?? Strategies.FirstOrDefault();
+    /// <summary>Стратегии текущего движка.</summary>
+    public IEnumerable<StrategyProfile> EngineStrategies(EngineKind? engine = null) =>
+        Strategies.Where(s => s.Engine == (engine ?? Engine));
+
+    public string GetActiveName(EngineKind engine) => engine == EngineKind.Zapret ? ActiveZapretStrategy : ActiveStrategy;
+
+    public void SetActiveName(EngineKind engine, string name)
+    {
+        if (engine == EngineKind.Zapret) ActiveZapretStrategy = name;
+        else ActiveStrategy = name;
+    }
+
+    public StrategyProfile? GetActiveStrategy(EngineKind? engine = null)
+    {
+        var e = engine ?? Engine;
+        var name = GetActiveName(e);
+        return EngineStrategies(e).FirstOrDefault(s => s.Name == name) ?? EngineStrategies(e).FirstOrDefault();
+    }
+
+    public TunedStrategy? GetTuned(EngineKind? engine = null) => Tuned.FirstOrDefault(t => t.Engine == (engine ?? Engine));
 }

@@ -35,6 +35,12 @@ public sealed partial class HomeViewModel : ViewModelBase
     [ObservableProperty] private string _rulesText = "";
     [ObservableProperty] private string _filterText = "";
     [ObservableProperty] private string? _warning;
+    [ObservableProperty] private bool _isZapret;
+    [ObservableProperty] private string _secondTitle = "";
+    [ObservableProperty] private string _secondValue = "";
+    [ObservableProperty] private string _secondHint = "";
+
+    public string UpdateTitle => _host.Update is { } u ? $"Доступна новая версия {u.Version}" : "";
 
     public AppHost Host => _host;
 
@@ -55,6 +61,7 @@ public sealed partial class HomeViewModel : ViewModelBase
     private void OnHostChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName is nameof(AppHost.State) or nameof(AppHost.IsTuning)) UpdateState();
+        if (e.PropertyName is nameof(AppHost.Update)) OnPropertyChanged(nameof(UpdateTitle));
         if (e.PropertyName == nameof(AppHost.TuneText)) OnPropertyChanged(nameof(TuneSummary));
     }
 
@@ -72,12 +79,16 @@ public sealed partial class HomeViewModel : ViewModelBase
         IsBusy = state is ConnectionState.Connecting or ConnectionState.Disconnecting;
         IsError = state == ConnectionState.Error;
         IsSpinning = IsBusy || _host.IsTuning;
-        var mode = (c.ActiveMode ?? _host.Settings.Mode) == EngineMode.Tun ? "TUN" : "Прокси";
+        var mode = c.IsConnected ? c.ModeTitle
+            : _host.Settings.Engine == EngineKind.Zapret ? "zapret"
+            : _host.Settings.Mode == EngineMode.Tun ? "TUN" : "Прокси";
         (StatusTitle, StatusSubtitle) = state switch
         {
             ConnectionState.Connected when _host.IsTuning => ($"Подключено ({mode})", "Идёт проверка обхода…"),
             ConnectionState.Connected => ($"Подключено ({mode})", "Выбранные приложения и сайты идут через обход DPI"),
-            ConnectionState.Connecting => ("Подключение…", _host.Settings.Mode == EngineMode.Tun ? "Запуск ciadpi и sing-box" : "Запуск ciadpi"),
+            ConnectionState.Connecting => ("Подключение…",
+                _host.Settings.Engine == EngineKind.Zapret ? "Запуск zapret (winws)"
+                : _host.Settings.Mode == EngineMode.Tun ? "Запуск ciadpi и sing-box" : "Запуск ciadpi"),
             ConnectionState.Disconnecting => ("Отключение…", "Останавливаю движки и убираю настройки"),
             ConnectionState.Error => ("Ошибка", c.ErrorMessage ?? "Не удалось подключиться"),
             _ => ("Отключено", "Нажмите кнопку, чтобы включить обход"),
@@ -94,7 +105,7 @@ public sealed partial class HomeViewModel : ViewModelBase
     {
         _syncing = true;
         StrategyNames.Clear();
-        foreach (var s in _host.Settings.Strategies) StrategyNames.Add(s.Name);
+        foreach (var s in _host.Settings.EngineStrategies()) StrategyNames.Add(s.Name);
         SelectedStrategy = _host.Settings.GetActiveStrategy()?.Name;
         _syncing = false;
     }
@@ -102,11 +113,16 @@ public sealed partial class HomeViewModel : ViewModelBase
     private void Refresh()
     {
         var s = _host.Settings;
-        ModeText = s.Mode == EngineMode.Tun ? "TUN — все программы" : "Только прокси";
-        ModeHint = s.Mode == EngineMode.Tun ? "Правила по программам и доменам"
+        IsZapret = s.Engine == EngineKind.Zapret;
+        ModeText = IsZapret ? "zapret — пакеты напрямую" : s.Mode == EngineMode.Tun ? "byedpi, TUN — все программы" : "byedpi, только прокси";
+        ModeHint = IsZapret ? "Правила по доменам и подсетям"
+            : s.Mode == EngineMode.Tun ? "Правила по программам и доменам"
             : !s.SetSystemProxy ? "Укажите прокси в нужных программах"
             : s.UsePac ? "Системный прокси + PAC для браузеров" : "Системный SOCKS-прокси";
         ProxyAddress = $"127.0.0.1:{s.SocksPort}";
+        SecondTitle = IsZapret ? "Внешний прокси" : "Локальный прокси";
+        SecondValue = IsZapret ? (s.UpstreamEnabled && s.UpstreamUri.Length > 0 ? "включён" : "не используется") : ProxyAddress;
+        SecondHint = IsZapret ? "Для сервисов, заблокированных по IP" : "SOCKS5 · только этот компьютер";
         FilterText = s.Filter switch
         {
             FilterMode.Whitelist => "Через обход — только выбранное",
@@ -141,6 +157,18 @@ public sealed partial class HomeViewModel : ViewModelBase
 
     [RelayCommand]
     private void ToggleAdvice() => ShowAdvice = !ShowAdvice;
+
+    [RelayCommand]
+    private Task InstallUpdate() => _host.InstallUpdateAsync(_host.ExitApp ?? (() => Task.CompletedTask));
+
+    [RelayCommand]
+    private void OpenRelease()
+    {
+        if (_host.Update is { } u) Ui.Open(u.HtmlUrl);
+    }
+
+    [RelayCommand]
+    private void DismissBroken() => _host.StrategyBroken = false;
 
     [RelayCommand]
     private void Go(PageKind page) => _navigate(page);

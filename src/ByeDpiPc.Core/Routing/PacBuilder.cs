@@ -9,10 +9,12 @@ namespace ByeDpiPc.Core.Routing;
 /// </summary>
 public static class PacBuilder
 {
-    public static string Build(RoutePlan plan, int socksPort)
+    /// <param name="bridgePort">Порт локального моста sing-box к внешнему прокси (для VLESS).</param>
+    public static string Build(RoutePlan plan, int socksPort, int? bridgePort = null)
     {
         var byedpi = $"SOCKS5 127.0.0.1:{socksPort}; SOCKS 127.0.0.1:{socksPort}";
-        var upstream = plan.UpstreamProxy?.PacEntry ?? byedpi;
+        var upstream = bridgePort is { } bp ? $"SOCKS5 127.0.0.1:{bp}; SOCKS 127.0.0.1:{bp}"
+            : plan.UpstreamProxy is { NeedsLocalBridge: false } up ? up.PacEntry : byedpi;
         var final = plan.Final == RouteMode.Direct ? "DIRECT" : byedpi;
 
         var sb = new StringBuilder();

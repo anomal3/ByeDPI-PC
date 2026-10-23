@@ -17,8 +17,7 @@
     <StackPanel Margin="32,26,32,28" Spacing="16">
       <StackPanel Spacing="4">
         <TextBlock Classes="h1" Text="Стратегия обхода" />
-        <TextBlock Classes="muted" TextWrapping="Wrap"
-                   Text="Стратегия — это аргументы byedpi: как «запутать» первые пакеты соединения, чтобы фильтр провайдера не увидел адрес сайта. Можно хранить несколько стратегий и переключаться между ними на главной." />
+        <TextBlock Classes="muted" TextWrapping="Wrap" Text="{Binding EngineHint}" />
       </StackPanel>
 
       <!-- Профили -->
@@ -47,14 +46,14 @@
       </Border>
 
       <!-- Переключатель режима -->
-      <Border Classes="segments">
+      <Border Classes="segments" IsVisible="{Binding !IsZapret}">
         <StackPanel Orientation="Horizontal">
           <RadioButton Classes="segment" GroupName="mode" Content="Простой режим" IsChecked="{Binding IsSimpleMode}" Command="{Binding SimpleModeCommand}" />
           <RadioButton Classes="segment" GroupName="mode" Content="Командная строка" IsChecked="{Binding !IsSimpleMode}" Command="{Binding CommandModeCommand}" />
         </StackPanel>
       </Border>
 
-      <Border Classes="banner warning" IsVisible="{Binding !SimpleAvailable}">
+      <Border Classes="banner warning" IsVisible="{Binding ComplexWarning}">
         <TextBlock TextWrapping="Wrap" Text="Эта стратегия сложная (несколько групп --auto или редкие параметры), поэтому простой режим для неё недоступен. Редактируйте её в командной строке." />
       </Border>
 
@@ -141,11 +140,20 @@
       <Border Classes="card">
         <StackPanel Spacing="10">
           <Grid ColumnDefinitions="*,Auto">
-            <TextBlock Classes="h3" Text="Аргументы byedpi" VerticalAlignment="Center" />
+            <StackPanel Orientation="Horizontal" Spacing="0">
+              <TextBlock Classes="h3" Text="Аргументы " VerticalAlignment="Center" />
+              <TextBlock Classes="h3" Text="winws" VerticalAlignment="Center" IsVisible="{Binding IsZapret}" />
+              <TextBlock Classes="h3" Text="byedpi" VerticalAlignment="Center" IsVisible="{Binding !IsZapret}" />
+            </StackPanel>
             <Button Grid.Column="1" Classes="link" Content="Справка по ключам" Command="{Binding OpenHelpCommand}" />
           </Grid>
           <TextBox Classes="mono" Text="{Binding Arguments}" AcceptsReturn="False" TextWrapping="Wrap" MinHeight="64"
                    IsReadOnly="{Binding IsSimpleMode}" Background="{DynamicResource CodeBgBrush}" />
+          <StackPanel Spacing="6" IsVisible="{Binding IsZapret}">
+            <TextBlock Classes="caption" Text="Отдельно для YouTube/Google (необязательно; автоподбор заполняет сам)" />
+            <TextBox Classes="mono" Text="{Binding GoogleArguments}" TextWrapping="Wrap" MinHeight="44" Background="{DynamicResource CodeBgBrush}"
+                     Watermark="пусто — как для остальных сайтов" />
+          </StackPanel>
           <Border Classes="banner appear" Classes.success="{Binding ValidationOk}" Classes.danger="{Binding !ValidationOk}"
                   IsVisible="{Binding Validation, Converter={x:Static ObjectConverters.IsNotNull}}">
             <TextBlock Text="{Binding Validation}" TextWrapping="Wrap" />

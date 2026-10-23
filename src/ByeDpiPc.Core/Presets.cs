@@ -32,15 +32,53 @@ public static class Presets
     /// <summary>Набор стратегий для «Подбора» из ByeByeDPI.</summary>
     public static IReadOnlyList<string> LoadTestStrategies() => ReadLines("strategies.txt");
 
+    /// <summary>Стратегии zapret (winws): первая — универсальная по умолчанию.</summary>
+    public static IReadOnlyList<StrategyProfile> LoadZapretStrategies() =>
+        ReadLines("zapret-strategies.txt")
+            .Select(l => l.Split('|', 2))
+            .Where(p => p.Length == 2)
+            .Select(p => new StrategyProfile(p[0].Trim(), p[1].Trim(), EngineKind.Zapret))
+            .ToList();
+
+    /// <summary>Кандидаты для автоподбора текущего движка.</summary>
+    public static List<string> Candidates(AppSettings s, EngineKind engine, bool includeFullSet = true)
+    {
+        var list = new List<string>();
+        if (s.GetActiveStrategy(engine) is { } active) list.Add(active.Arguments);
+        list.AddRange(s.EngineStrategies(engine).Select(p => p.Arguments));
+        if (engine == EngineKind.Zapret)
+        {
+            list.AddRange(LoadZapretStrategies().Select(p => p.Arguments));
+        }
+        else
+        {
+            list.AddRange(DefaultStrategies.Select(p => p.Arguments));
+            if (includeFullSet) list.AddRange(LoadTestStrategies());
+        }
+        return list.Where(x => !string.IsNullOrWhiteSpace(x)).Distinct().ToList();
+    }
+
     public static IReadOnlyList<string> LoadTestSites() => ReadLines("sites.txt");
 
     /// <summary>Заполняет пустые настройки значениями по умолчанию и добавляет новые пресеты.</summary>
     public static void EnsureDefaults(AppSettings s)
     {
-        if (s.Strategies.Count == 0)
+        if (!OperatingSystem.IsWindows()) s.Engine = EngineKind.ByeDpi;
+        if (!s.EngineStrategies(EngineKind.ByeDpi).Any())
             s.Strategies.AddRange(DefaultStrategies.Select(p => new StrategyProfile(p.Name, p.Arguments)));
-        if (string.IsNullOrWhiteSpace(s.ActiveStrategy) || s.Strategies.All(p => p.Name != s.ActiveStrategy))
-            s.ActiveStrategy = s.Strategies[0].Name;
+        if (!s.EngineStrategies(EngineKind.Zapret).Any())
+            s.Strategies.AddRange(LoadZapretStrategies());
+        foreach (var engine in new[] { EngineKind.ByeDpi, EngineKind.Zapret })
+        {
+            var name = s.GetActiveName(engine);
+            if (string.IsNullOrWhiteSpace(name) || s.EngineStrategies(engine).All(p => p.Name != name))
+                s.SetActiveName(engine, s.EngineStrategies(engine).First().Name);
+        }
+        if (s.SchemaVersion < 2)
+        {
+            // 1.0 → 1.1: на Windows по умолчанию движок zapret, в сайты для проверки — API YouTube.
+            s.SchemaVersion = 2;
+        }
         if (s.TestSites.Count == 0)
             s.TestSites.AddRange(LoadTestSites());
 

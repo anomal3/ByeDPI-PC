@@ -28,12 +28,18 @@ public sealed partial class SettingsViewModel : ViewModelBase
     public string Version { get; } = typeof(SettingsViewModel).Assembly.GetName().Version?.ToString(3) ?? "1.0.0";
     public string ConfigDir => AppPaths.ConfigDir;
     public string EngineInfo =>
-        $"ciadpi: {(CiadpiEngine.FindExecutable() ?? "не найден")}\nsing-box: {(TunController.FindExecutable() ?? "не найден")}";
+        $"ciadpi: {(CiadpiEngine.FindExecutable() ?? "не найден")}\nsing-box: {(TunController.FindExecutable() ?? "не найден")}" +
+        (OperatingSystem.IsWindows() ? $"\nzapret: {(ZapretController.FindExecutable() ?? "не найден")}" : "");
 
-    public SettingsViewModel(AppHost host, Action<ThemeMode> applyTheme)
+    private readonly Action _shareExport;
+    private readonly Action _shareImport;
+
+    public SettingsViewModel(AppHost host, Action<ThemeMode> applyTheme, Action shareExport, Action shareImport)
     {
         _host = host;
         _applyTheme = applyTheme;
+        _shareExport = shareExport;
+        _shareImport = shareImport;
         ShowAdvanced = host.Settings.UpstreamEnabled;
         _ = RefreshAutostartAsync();
     }
@@ -76,6 +82,42 @@ public sealed partial class SettingsViewModel : ViewModelBase
         _applyTheme(mode);
         RefreshTheme();
     }
+
+    public AppHost Host => _host;
+    public bool IsWindows => OperatingSystem.IsWindows();
+    public bool ZapretMissing => OperatingSystem.IsWindows() && !ZapretController.IsAvailable;
+
+    // Движок
+    public bool EngineZapret
+    {
+        get => S.Engine == EngineKind.Zapret;
+        set { if (value && S.Engine != EngineKind.Zapret) SetEngine(EngineKind.Zapret); }
+    }
+
+    public bool EngineByeDpi
+    {
+        get => S.Engine == EngineKind.ByeDpi;
+        set { if (value && S.Engine != EngineKind.ByeDpi) SetEngine(EngineKind.ByeDpi); }
+    }
+
+    private void SetEngine(EngineKind engine)
+    {
+        S.Engine = engine;
+        _host.StrategyBroken = false;
+        _host.Save();
+        _host.NotifyStrategiesChanged();
+        OnPropertyChanged(nameof(EngineZapret));
+        OnPropertyChanged(nameof(EngineByeDpi));
+    }
+
+    // Обновления
+    public bool CheckUpdates { get => S.CheckUpdates; set => Set(() => S.CheckUpdates = value, false, nameof(CheckUpdates)); }
+
+    [RelayCommand]
+    private Task CheckUpdatesNow() => _host.CheckUpdatesAsync(manual: true);
+
+    [RelayCommand]
+    private Task InstallUpdate() => _host.InstallUpdateAsync(_host.ExitApp ?? (() => Task.CompletedTask));
 
     // Режим
     public bool ModeTun
@@ -164,7 +206,7 @@ public sealed partial class SettingsViewModel : ViewModelBase
 
     // Внешний прокси
     public bool UpstreamEnabled { get => S.UpstreamEnabled; set => Set(() => S.UpstreamEnabled = value, true, nameof(UpstreamEnabled)); }
-    public string UpstreamUri { get => S.UpstreamUri; set => Set(() => S.UpstreamUri = value.Trim(), true, nameof(UpstreamUri)); }
+    public string UpstreamUri { get => S.UpstreamUri; set => Set(() => S.UpstreamUri = value.Trim(), true, nameof(UpstreamUri), nameof(UpstreamDescription)); }
 
     [RelayCommand]
     private async Task CheckUpstream()
@@ -174,6 +216,12 @@ public sealed partial class SettingsViewModel : ViewModelBase
         {
             UpstreamCheckOk = false;
             UpstreamCheck = "Ошибка в адресе: " + error;
+            return;
+        }
+        if (proxy.Kind == Core.Routing.UpstreamKind.Vless)
+        {
+            UpstreamCheckOk = true;
+            UpstreamCheck = "Ключ VLESS прочитан: " + proxy.Describe() + ". Проверить соединение можно после подключения — откройте Telegram.";
             return;
         }
         IsCheckingUpstream = true;
@@ -194,6 +242,15 @@ public sealed partial class SettingsViewModel : ViewModelBase
 
     [RelayCommand]
     private void ToggleAdvanced() => ShowAdvanced = !ShowAdvanced;
+
+    [RelayCommand]
+    private void Export() => _shareExport();
+
+    [RelayCommand]
+    private void Import() => _shareImport();
+
+    public string UpstreamDescription =>
+        Core.Routing.UpstreamProxy.TryParse(S.UpstreamUri, out var p, out var err) ? p!.Describe() : string.IsNullOrWhiteSpace(S.UpstreamUri) ? "" : "Ошибка: " + err;
 
     [RelayCommand]
     private void OpenConfigDir() => Ui.Open(AppPaths.ConfigDir);

@@ -1,0 +1,58 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:ByeDpiPc.App.ViewModels"
+             x:Class="ByeDpiPc.App.Views.ShareImportView"
+             x:DataType="vm:ShareImportViewModel"
+             Width="540">
+  <StackPanel>
+    <Grid ColumnDefinitions="*,Auto" Margin="22,18,14,6">
+      <StackPanel>
+        <TextBlock Classes="h2" Text="Импорт настроек" />
+        <TextBlock Classes="caption" Text="Файл .bdpi, код bdpi:… или ключ vless:// от друга" />
+      </StackPanel>
+      <Button Grid.Column="1" Classes="icon" Command="{Binding CloseCommand}" VerticalAlignment="Top"><PathIcon Data="{StaticResource Icon.Close}" /></Button>
+    </Grid>
+    <StackPanel Margin="22,8,22,18" Spacing="12">
+      <StackPanel Orientation="Horizontal" Spacing="8">
+        <Button Classes="soft" Command="{Binding OpenFileCommand}">
+          <StackPanel Orientation="Horizontal" Spacing="8"><PathIcon Data="{StaticResource Icon.FolderOpenOutline}" /><TextBlock Text="Открыть файл" /></StackPanel>
+        </Button>
+        <Button Classes="soft" Command="{Binding PasteCommand}">
+          <StackPanel Orientation="Horizontal" Spacing="8"><PathIcon Data="{StaticResource Icon.ContentCopy}" /><TextBlock Text="Вставить код" /></StackPanel>
+        </Button>
+      </StackPanel>
+      <TextBox Classes="mono" Text="{Binding Code}" AcceptsReturn="True" TextWrapping="Wrap" Height="80"
+               Watermark="…или вставьте код сюда" Background="{DynamicResource CodeBgBrush}" />
+      <Border Classes="banner danger" IsVisible="{Binding Error, Converter={x:Static ObjectConverters.IsNotNull}}">
+        <TextBlock Text="{Binding Error}" TextWrapping="Wrap" />
+      </Border>
+      <Border Classes="soft appear" IsVisible="{Binding IsReady}" Padding="14,12">
+        <StackPanel Spacing="6">
+          <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
+          <TextBlock Classes="caption" Text="{Binding Comment}" TextWrapping="Wrap"
+                     IsVisible="{Binding Comment, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+          <TextBlock Classes="caption" Text="Будет применено:" Margin="0,4,0,0" />
+          <ItemsControl ItemsSource="{Binding Changes}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="x:String">
+                <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,2">
+                  <PathIcon Data="{StaticResource Icon.Check}" Width="14" Height="14" Foreground="{DynamicResource SuccessBrush}" />
+                  <TextBlock Text="{Binding}" TextWrapping="Wrap" MaxWidth="440" />
+                </StackPanel>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </Border>
+      <Border Classes="banner success appear" IsVisible="{Binding Done}">
+        <TextBlock Text="Готово! Настройки применены." TextWrapping="Wrap" />
+      </Border>
+      <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+        <Button Classes="ghost" Content="Закрыть" Command="{Binding CloseCommand}" />
+        <Button Classes="accent" Command="{Binding ApplyCommand}" IsEnabled="{Binding IsReady}" IsVisible="{Binding !Done}">
+          <StackPanel Orientation="Horizontal" Spacing="8"><PathIcon Data="{StaticResource Icon.Check}" /><TextBlock Text="Применить" /></StackPanel>
+        </Button>
+      </StackPanel>
+    </StackPanel>
+  </StackPanel>
+</UserControl>

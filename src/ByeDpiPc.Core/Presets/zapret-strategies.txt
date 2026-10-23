@@ -1,0 +1,24 @@
+# Стратегии zapret (winws) для подбора. Формат: Название | аргументы desync для TCP 80/443.
+# Основаны на наборе https://github.com/Flowseal/zapret-discord-youtube (MIT, © bol-van, Flowseal).
+# Файлы *.bin лежат рядом с winws.exe (engine/zapret).
+Универсальная (seqovl) | --dpi-desync=multisplit --dpi-desync-split-seqovl=568 --dpi-desync-split-pos=1 --dpi-desync-split-seqovl-pattern=tls_clienthello_4pda_to.bin
+Seqovl Google | --dpi-desync=multisplit --dpi-desync-split-seqovl=681 --dpi-desync-split-pos=1 --dpi-desync-split-seqovl-pattern=tls_clienthello_www_google_com.bin
+Seqovl 652 | --dpi-desync=multisplit --dpi-desync-split-seqovl=652 --dpi-desync-split-pos=2 --dpi-desync-split-seqovl-pattern=tls_clienthello_www_google_com.bin
+Seqovl SNI | --dpi-desync=multisplit --dpi-desync-split-pos=2,sniext+1 --dpi-desync-split-seqovl=679 --dpi-desync-split-seqovl-pattern=tls_clienthello_www_google_com.bin
+Простой fake | --dpi-desync=fake --dpi-desync-repeats=6 --dpi-desync-fooling=ts --dpi-desync-fake-tls=tls_clienthello_www_google_com.bin --dpi-desync-fake-http=tls_clienthello_www_sferum_ru.bin
+Fake 4pda | --dpi-desync=fake --dpi-desync-repeats=6 --dpi-desync-fooling=ts --dpi-desync-fake-tls=stun.bin --dpi-desync-fake-tls=tls_clienthello_4pda_to.bin --dpi-desync-fake-http=tls_clienthello_www_sferum_ru.bin
+Fake + fakedsplit | --dpi-desync=fake,fakedsplit --dpi-desync-repeats=6 --dpi-desync-fooling=ts --dpi-desync-fakedsplit-pattern=0x00 --dpi-desync-fake-tls=stun.bin --dpi-desync-fake-tls=tls_clienthello_www_google_com.bin --dpi-desync-fake-http=tls_clienthello_www_sferum_ru.bin
+Fake + multisplit badseq | --dpi-desync=fake,multisplit --dpi-desync-repeats=6 --dpi-desync-fooling=badseq --dpi-desync-badseq-increment=1000 --dpi-desync-fake-tls=stun.bin --dpi-desync-fake-tls=tls_clienthello_www_google_com.bin --dpi-desync-fake-http=tls_clienthello_www_sferum_ru.bin
+Fake badseq | --dpi-desync=fake --dpi-desync-fake-tls-mod=none --dpi-desync-repeats=6 --dpi-desync-fooling=badseq --dpi-desync-badseq-increment=2 --dpi-desync-fake-http=tls_clienthello_www_sferum_ru.bin
+Hostfakesplit ya.ru | --dpi-desync=fake,hostfakesplit --dpi-desync-fake-tls-mod=rnd,dupsid,sni=ya.ru --dpi-desync-hostfakesplit-mod=host=ya.ru,altorder=1 --dpi-desync-fooling=ts --dpi-desync-fake-http=tls_clienthello_www_sferum_ru.bin
+Hostfakesplit ozon | --dpi-desync=hostfakesplit --dpi-desync-repeats=4 --dpi-desync-fooling=ts,md5sig --dpi-desync-hostfakesplit-mod=host=ozon.ru
+Fake + seqovl sferum | --dpi-desync=fake,multisplit --dpi-desync-split-seqovl=664 --dpi-desync-split-pos=1 --dpi-desync-fooling=ts --dpi-desync-repeats=8 --dpi-desync-split-seqovl-pattern=tls_clienthello_www_sferum_ru.bin --dpi-desync-fake-tls=stun2.bin --dpi-desync-fake-tls=tls_clienthello_www_sferum_ru.bin --dpi-desync-fake-http=tls_clienthello_www_sferum_ru.bin
+Hostfakesplit mail.ru | --dpi-desync=fake,hostfakesplit --dpi-desync-fooling=ts --dpi-desync-hostfakesplit-mod=host=mail.ru,altorder=1 --dpi-desync-repeats=5 --dpi-desync-fake-tls=tls_clienthello_sochi_park.bin --dpi-desync-fake-tls=stun2.bin --dpi-desync-fake-http=tls_clienthello_sochi_park.bin
+Fake TLS auto | --dpi-desync=fake,multidisorder --dpi-desync-split-pos=1,midsld --dpi-desync-repeats=11 --dpi-desync-fooling=badseq --dpi-desync-fake-tls=0x00000000 --dpi-desync-fake-tls=! --dpi-desync-fake-tls-mod=rnd,dupsid,sni=www.google.com --dpi-desync-fake-http=tls_clienthello_www_sferum_ru.bin
+Multidisorder md5sig | --dpi-desync=fake,multidisorder --dpi-desync-split-pos=1,midsld --dpi-desync-fooling=md5sig --dpi-desync-autottl
+Fakedsplit autottl | --dpi-desync=fakedsplit --dpi-desync-split-pos=1 --dpi-desync-fooling=badseq --dpi-desync-repeats=8 --dpi-desync-autottl
+Google: seqovl ip-id | --ip-id=zero --dpi-desync=multisplit --dpi-desync-split-seqovl=681 --dpi-desync-split-pos=1 --dpi-desync-split-seqovl-pattern=tls_clienthello_www_google_com.bin
+Google: fake + seqovl | --ip-id=zero --dpi-desync=fake,multisplit --dpi-desync-split-seqovl=681 --dpi-desync-split-pos=1 --dpi-desync-fooling=ts --dpi-desync-repeats=8 --dpi-desync-split-seqovl-pattern=tls_clienthello_www_google_com.bin --dpi-desync-fake-tls=tls_clienthello_www_google_com.bin
+Google: hostfakesplit | --ip-id=zero --dpi-desync=hostfakesplit --dpi-desync-fooling=ts --dpi-desync-hostfakesplit-mod=host=www.google.com
+Google: fake + fakedsplit | --ip-id=zero --dpi-desync=fake,fakedsplit --dpi-desync-repeats=6 --dpi-desync-fooling=ts --dpi-desync-fakedsplit-pattern=0x00 --dpi-desync-fake-tls=tls_clienthello_www_google_com.bin
+Google: fake badseq | --ip-id=zero --dpi-desync=fake,multisplit --dpi-desync-repeats=6 --dpi-desync-fooling=badseq --dpi-desync-badseq-increment=1000 --dpi-desync-fake-tls=tls_clienthello_www_google_com.bin

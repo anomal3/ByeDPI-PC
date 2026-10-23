@@ -88,7 +88,7 @@
         <StackPanel Orientation="Horizontal" Spacing="10">
           <PathIcon Data="{StaticResource Icon.InformationOutline}" Foreground="{DynamicResource WarningBrush}" VerticalAlignment="Top" />
           <TextBlock TextWrapping="Wrap" MaxWidth="700"
-                     Text="Сейчас режим «Только прокси»: работают только домены (через системный прокси в браузерах). Чтобы направить программу целиком, включите режим TUN в настройках — или укажите в самой программе SOCKS5-прокси 127.0.0.1:1080 (например, Telegram: Настройки → Продвинутые → Тип соединения)." />
+                     Text="{Binding ProcessHint}" />
         </StackPanel>
       </Border>
     </StackPanel>

@@ -32,7 +32,7 @@ public sealed class ChildProcess : IDisposable
         _source = source;
     }
 
-    public static ChildProcess Start(string file, IEnumerable<string> args, string source, bool logOutput = true)
+    public static ChildProcess Start(string file, IEnumerable<string> args, string source, bool logOutput = true, string? workingDirectory = null)
     {
         var psi = new ProcessStartInfo(file)
         {
@@ -40,7 +40,7 @@ public sealed class ChildProcess : IDisposable
             CreateNoWindow = true,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
-            WorkingDirectory = Path.GetDirectoryName(file) ?? Environment.CurrentDirectory,
+            WorkingDirectory = workingDirectory ?? Path.GetDirectoryName(file) ?? Environment.CurrentDirectory,
         };
         foreach (var a in args) psi.ArgumentList.Add(a);
 
