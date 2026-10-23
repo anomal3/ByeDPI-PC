@@ -36,7 +36,7 @@
     <EngineRid Condition="'$(EngineRid)' == '' and $([MSBuild]::IsOSPlatform('OSX'))">osx-arm64</EngineRid>
   </PropertyGroup>
   <ItemGroup>
-    <None Include="..\..\engine\$(EngineRid)\**\*" Link="engine\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <None Include="..\..\engine\$(EngineRid)\**\*" Link="engine\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" ExcludeFromSingleFile="true" />
   </ItemGroup>
 
 </Project>

@@ -1,4 +1,4 @@
-<#
+﻿<#
   Собирает портативный релиз: dist\ByeDPI-PC-<версия>-<rid>.zip (программа + engine\ с движками и лицензиями).
   Запуск: powershell -ExecutionPolicy Bypass -File scripts\publish.ps1 [-Rid win-x64]
 #>

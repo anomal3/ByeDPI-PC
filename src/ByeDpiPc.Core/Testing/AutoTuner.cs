@@ -76,7 +76,10 @@ public sealed class AutoTuner
                 "Ни одна стратегия не открыла заблокированные сайты. Скорее всего, они заблокированы по IP — обход DPI тут не поможет, нужен внешний прокси.");
 
         var currentResult = results.FirstOrDefault(r => r.Arguments == current);
+        var failed = best.Sites.Where(x => !x.Ok).Select(x => x.Site).ToList();
         var summary = $"Открывает {best.Success} из {best.Total} сайтов";
+        if (failed.Count > 0)
+            summary += $". Не открываются ни одной стратегией: {string.Join(", ", failed)} — вероятно, блокировка по IP, для них нужен внешний прокси";
         if (currentResult != null && currentResult.Success >= best.Success)
             return new TuneOutcome(best.Percent >= GoodEnough * 100, null, "Текущая стратегия уже лучшая. " + summary + ".");
         return new TuneOutcome(best.Percent >= GoodEnough * 100, best.Arguments, "Найдена новая стратегия. " + summary + ".");

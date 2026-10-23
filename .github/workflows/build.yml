@@ -31,7 +31,7 @@ jobs:
         run: scripts/fetch-engines.ps1 -Rid ${{ matrix.rid }}
       - name: Движки (Linux/macOS)
         if: runner.os != 'Windows'
-        run: scripts/fetch-engines.sh ${{ matrix.rid }}
+        run: bash scripts/fetch-engines.sh ${{ matrix.rid }}
 
       - name: Тесты
         run: dotnet test tests/ByeDpiPc.Core.Tests -c Release

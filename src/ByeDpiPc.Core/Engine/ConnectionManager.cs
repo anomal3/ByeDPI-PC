@@ -151,6 +151,7 @@ public sealed class ConnectionManager : IAsyncDisposable
         await StartCiadpiAsync(settings, ct);
 
         var plan = RoutePlan.Build(settings);
+        if (settings.Mode == EngineMode.Tun && VpnDetector.Warning() is { } vpn) plan.Warnings.Insert(0, vpn);
         Warnings = plan.Warnings;
         foreach (var w in plan.Warnings) Log.Warn(Source, w);
 

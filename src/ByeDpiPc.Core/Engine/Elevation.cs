@@ -1,6 +1,5 @@
 using System.ComponentModel;
 using System.Diagnostics;
-using System.Reflection;
 
 namespace ByeDpiPc.Core.Engine;
 
@@ -16,7 +15,8 @@ public static class Elevation
         var name = Path.GetFileNameWithoutExtension(path);
         if (name.Equals("dotnet", StringComparison.OrdinalIgnoreCase))
         {
-            var dll = Assembly.GetEntryAssembly()?.Location ?? throw new InvalidOperationException("Неизвестен путь к сборке");
+            // Запуск через «dotnet ByeDPI-PC.dll»: первый аргумент командной строки — путь к dll.
+            var dll = Environment.GetCommandLineArgs()[0];
             return (path, new List<string> { dll });
         }
         return (path, new List<string>());

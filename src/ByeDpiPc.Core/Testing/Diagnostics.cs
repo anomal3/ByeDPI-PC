@@ -21,6 +21,10 @@ public static class Diagnostics
         items.Add(new(singBox != null || s.Mode == EngineMode.ProxyOnly, "Движок sing-box (для TUN)",
             singBox ?? "Не найден. Без него работает только режим «Только прокси»."));
 
+        var vpn = VpnDetector.ActiveVpnAdapters();
+        items.Add(new(vpn.Count == 0, "Другие VPN",
+            vpn.Count == 0 ? "Не найдены" : VpnDetector.Warning()!));
+
         items.Add(new(connection.IsConnected, "Подключение",
             connection.IsConnected
                 ? $"Подключено, режим: {(connection.ActiveMode == EngineMode.Tun ? "TUN" : "Только прокси")}"
