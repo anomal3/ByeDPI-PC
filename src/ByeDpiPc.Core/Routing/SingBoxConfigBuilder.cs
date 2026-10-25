@@ -65,17 +65,20 @@ public static class SingBoxConfigBuilder
     {
         var address = new JsonArray("172.19.0.1/30");
         if (s.Ipv6) address.Add("fdfe:dcba:9876::1/126");
-        return new JsonObject
+        var tun = new JsonObject
         {
             ["type"] = "tun",
             ["tag"] = "tun-in",
-            ["interface_name"] = TunInterfaceName,
             ["address"] = address,
             ["mtu"] = 9000,
             ["auto_route"] = true,
             ["strict_route"] = true,
             ["stack"] = "mixed",
         };
+        // На macOS адаптер может называться только utunN: sing-box выбирает имя сам,
+        // а своё имя («bad tun name») он отвергает.
+        if (!OperatingSystem.IsMacOS()) tun["interface_name"] = TunInterfaceName;
+        return tun;
     }
 
     private static JsonArray BuildOutbounds(AppSettings s, RoutePlan plan)

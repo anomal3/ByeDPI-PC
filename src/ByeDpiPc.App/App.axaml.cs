@@ -77,7 +77,10 @@ public partial class App : Application
     private void BuildTrayMenu()
     {
         if (_tray == null || _host == null) return;
-        var menu = new NativeMenu();
+        // Меню обновляем на месте: повторное присвоение нового NativeMenu роняет Avalonia на macOS
+        // («The menu being updated does not match»).
+        var menu = _tray.Menu ?? new NativeMenu();
+        menu.Items.Clear();
 
         var toggle = new NativeMenuItem(_host.Connection.IsConnected ? "Отключить" : "Подключить");
         toggle.Click += async (_, _) => await _host.ToggleAsync();
@@ -117,7 +120,7 @@ public partial class App : Application
         exit.Click += async (_, _) => await ExitAsync();
         menu.Add(exit);
 
-        _tray.Menu = menu;
+        if (!ReferenceEquals(_tray.Menu, menu)) _tray.Menu = menu;
     }
 
     private void UpdateTray()
