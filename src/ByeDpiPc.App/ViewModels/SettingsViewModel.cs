@@ -41,6 +41,9 @@ public sealed partial class SettingsViewModel : ViewModelBase
         _shareExport = shareExport;
         _shareImport = shareImport;
         ShowAdvanced = host.Settings.UpstreamEnabled;
+        _host.VkRelay.PropertyChanged += OnVkRelayChanged;
+        if (!string.IsNullOrEmpty(_host.VkRelay.PairingCode))
+            VkRelayQr = QrImage.Create(_host.VkRelay.PairingCode);
         _ = RefreshAutostartAsync();
     }
 
@@ -237,6 +240,46 @@ public sealed partial class SettingsViewModel : ViewModelBase
         {
             IsCheckingUpstream = false;
         }
+    }
+
+    // Точка выхода для телефона (звонки VK)
+    [ObservableProperty] private Avalonia.Media.Imaging.Bitmap? _vkRelayQr;
+
+    public RelayPcHost VkRelay => _host.VkRelay;
+
+    public bool VkRelayEnabled
+    {
+        get => S.VkRelayEnabled;
+        set
+        {
+            if (S.VkRelayEnabled == value) return;
+            S.VkRelayEnabled = value;
+            _host.Save(apply: false);
+            if (value) _host.VkRelay.Start(); else _host.VkRelay.Stop();
+            OnPropertyChanged(nameof(VkRelayEnabled));
+        }
+    }
+
+    public int VkRelayCount
+    {
+        get => S.VkRelayCount;
+        set => Set(() => S.VkRelayCount = Math.Clamp(value, 1, 8), false, nameof(VkRelayCount));
+    }
+
+    public string VkRelayCallLink
+    {
+        get => S.VkRelayCallLink;
+        set { _host.VkRelay.SetCallLink(value.Trim()); OnPropertyChanged(nameof(VkRelayCallLink)); }
+    }
+
+    [RelayCommand]
+    private void ResetVkRelay() => _host.VkRelay.Reset();
+
+    void OnVkRelayChanged(object? _, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName != nameof(RelayPcHost.PairingCode)) return;
+        var code = _host.VkRelay.PairingCode;
+        VkRelayQr = string.IsNullOrEmpty(code) ? null : QrImage.Create(code);
     }
 
     [RelayCommand]

@@ -165,6 +165,15 @@ public sealed class AppSettings
     /// <summary>socks5://[user:pass@]host:port или http(s)://…</summary>
     public string UpstreamUri { get; set; } = "";
 
+    /// <summary>Режим «точка выхода для телефона» через звонки VK (см. docs/vk-relay.md).</summary>
+    public bool VkRelayEnabled { get; set; }
+    /// <summary>Ссылка на звонок VK, по которой берутся данные ретрансляторов.</summary>
+    public string VkRelayCallLink { get; set; } = "";
+    /// <summary>Сколько ретрансляторов занимать с каждой стороны (скорость vs. нагрузка на VK).</summary>
+    public int VkRelayCount { get; set; } = 3;
+    /// <summary>Сохранённый секрет связки (base64url), чтобы телефон не пересвязывать после перезапуска.</summary>
+    public string VkRelaySecret { get; set; } = "";
+
     /// <summary>Стратегии текущего движка.</summary>
     public IEnumerable<StrategyProfile> EngineStrategies(EngineKind? engine = null) =>
         Strategies.Where(s => s.Engine == (engine ?? Engine));

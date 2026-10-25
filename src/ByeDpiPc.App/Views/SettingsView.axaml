@@ -279,6 +279,59 @@
         </StackPanel>
       </Border>
 
+      <!-- Точка выхода для телефона (звонки VK) -->
+      <Border Classes="card">
+        <StackPanel Spacing="10">
+          <Grid Classes="row" ColumnDefinitions="*,Auto">
+            <StackPanel>
+              <TextBlock Classes="h2" Text="Точка выхода для телефона" />
+              <TextBlock Classes="caption" TextWrapping="Wrap"
+                         Text="Для телефона на мобильной связи, где оператор пускает только российские сервисы. Этот ПК станет выходом в интернет через серверы звонков VK. Держите ПК включённым." />
+            </StackPanel>
+            <ToggleSwitch Grid.Column="1" IsChecked="{Binding VkRelayEnabled}" />
+          </Grid>
+
+          <Border Classes="banner warning">
+            <TextBlock TextWrapping="Wrap"
+                       Text="Только для личного использования. Подключайте одно своё устройство и одну ссылку на звонок с одного аккаунта VK. Не раздавайте QR-код и не делайте общий сервер: массовое использование VK заметит и заблокирует аккаунт. Лучше заведите отдельный аккаунт VK." />
+          </Border>
+
+          <StackPanel IsVisible="{Binding VkRelayEnabled}" Spacing="10" Classes="appear">
+            <StackPanel Spacing="4">
+              <TextBlock Text="Ссылка на звонок VK" />
+              <TextBlock Classes="caption" TextWrapping="Wrap"
+                         Text="В VK: «Звонки» → «Создать звонок» → «Скопировать ссылку». Звонить не нужно, ссылка — просто комната. Она попадёт в QR-код, телефон возьмёт её сам." />
+              <TextBox Classes="mono" Text="{Binding VkRelayCallLink}" Watermark="https://vk.ru/call/join/…" />
+            </StackPanel>
+            <Grid Classes="row" ColumnDefinitions="*,Auto">
+              <StackPanel>
+                <TextBlock Text="Сколько каналов занимать" />
+                <TextBlock Classes="caption" TextWrapping="Wrap"
+                           Text="Больше каналов — выше скорость, но заметнее для VK. Один канал — около 2 Мбит/с." />
+              </StackPanel>
+              <NumericUpDown Grid.Column="1" Value="{Binding VkRelayCount}" Minimum="1" Maximum="8" Width="120" FormatString="0" />
+            </Grid>
+
+            <Border Classes="banner" Classes.success="{Binding VkRelay.Paired}">
+              <StackPanel Spacing="2">
+                <TextBlock Text="{Binding VkRelay.Status}" TextWrapping="Wrap" />
+              </StackPanel>
+            </Border>
+
+            <StackPanel IsVisible="{Binding VkRelayQr, Converter={x:Static ObjectConverters.IsNotNull}}" Spacing="8" HorizontalAlignment="Center">
+              <TextBlock Classes="caption" HorizontalAlignment="Center" TextWrapping="Wrap"
+                         Text="Дома по Wi-Fi откройте в приложении на телефоне «Внешний прокси → Через ПК» и отсканируйте код:" />
+              <Border Background="White" Padding="10" CornerRadius="8" HorizontalAlignment="Center">
+                <Image Source="{Binding VkRelayQr}" Width="220" Height="220" />
+              </Border>
+              <Button Classes="ghost" HorizontalAlignment="Center" Command="{Binding ResetVkRelayCommand}">
+                <StackPanel Orientation="Horizontal" Spacing="8"><PathIcon Data="{StaticResource Icon.Refresh}" /><TextBlock Text="Новый код (отвязать телефон)" /></StackPanel>
+              </Button>
+            </StackPanel>
+          </StackPanel>
+        </StackPanel>
+      </Border>
+
       <!-- Обмен настройками -->
       <Border Classes="card">
         <Grid ColumnDefinitions="*,Auto">

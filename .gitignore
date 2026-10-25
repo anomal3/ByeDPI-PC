@@ -8,3 +8,4 @@ obj/
 /dist/
 /artifacts/
 TestResults/
+.DS_Store

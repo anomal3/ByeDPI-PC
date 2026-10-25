@@ -3,7 +3,7 @@
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <Version>1.1.1</Version>
+    <Version>1.2.0</Version>
     <Authors>ByeDPI-PC contributors</Authors>
     <Product>ByeDPI PC</Product>
     <Copyright>GPL-3.0-or-later</Copyright>

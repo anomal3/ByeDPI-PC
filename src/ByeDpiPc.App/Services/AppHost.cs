@@ -22,6 +22,9 @@ public sealed partial class AppHost : ObservableObject
     public AppSettings Settings { get; }
     public ConnectionManager Connection { get; } = new();
 
+    /// <summary>Режим «точка выхода для телефона» через звонки VK.</summary>
+    public RelayPcHost VkRelay { get; }
+
     /// <summary>Корректный выход из программы (задаёт App).</summary>
     public Func<Task>? ExitApp { get; set; }
 
@@ -53,6 +56,8 @@ public sealed partial class AppHost : ObservableObject
         Settings = settings;
         DemoMode = demoMode;
         Current = this;
+        VkRelay = new RelayPcHost(settings, () => Save(apply: false));
+        if (!demoMode && settings.VkRelayEnabled) VkRelay.Start();
         _applyTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(700) };
         _applyTimer.Tick += async (_, _) =>
         {

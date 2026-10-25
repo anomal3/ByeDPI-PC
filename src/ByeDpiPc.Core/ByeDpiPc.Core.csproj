@@ -13,4 +13,8 @@
     <InternalsVisibleTo Include="ByeDpiPc.Core.Tests" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="KcpSharp" Version="0.8.8" />
+  </ItemGroup>
+
 </Project>

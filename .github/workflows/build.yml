@@ -5,9 +5,34 @@ on:
     branches: [main]
     tags: ['v*']
   pull_request:
+  workflow_dispatch:
 
 jobs:
+  # Версия из Directory.Build.props и решение, публиковать ли релиз (нет такого — публикуем).
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+      release: ${{ steps.v.outputs.release }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: v
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=$(sed -n 's/.*<Version>\(.*\)<\/Version>.*/\1/p' Directory.Build.props | head -1)
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          release=false
+          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            release=true
+          elif [[ "${{ github.event_name }}" == "push" || "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            if gh release view "v$version" -R "${{ github.repository }}" >/dev/null 2>&1; then release=false; else release=true; fi
+          fi
+          echo "release=$release" >> "$GITHUB_OUTPUT"
+          echo "Версия $version, публиковать релиз: $release"
+
   build:
+    needs: version
     strategy:
       fail-fast: false
       matrix:
@@ -36,27 +61,35 @@ jobs:
       - name: Тесты
         run: dotnet test tests/ByeDpiPc.Core.Tests -c Release
 
-      - name: Сборка
-        run: >
-          dotnet publish src/ByeDpiPc.App -c Release -r ${{ matrix.rid }} --self-contained true
-          -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:DebugType=none
-          -o out/ByeDPI-PC-${{ matrix.rid }}
+      - name: Пакет (Windows — zip)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: scripts/publish.ps1 -Rid ${{ matrix.rid }}
 
-      - name: Архив
-        shell: bash
+      - name: Пакет (macOS — dmg)
+        if: runner.os == 'macOS'
+        run: bash scripts/publish-mac.sh ${{ matrix.rid }}
+
+      - name: Пакет (Linux — tar.gz)
+        if: runner.os == 'Linux'
         run: |
-          cp LICENSE README.md out/ByeDPI-PC-${{ matrix.rid }}/
-          cd out
-          if [ "${{ runner.os }}" = "Windows" ]; then 7z a ../ByeDPI-PC-${{ matrix.rid }}.zip ByeDPI-PC-${{ matrix.rid }}; else tar -czf ../ByeDPI-PC-${{ matrix.rid }}.tar.gz ByeDPI-PC-${{ matrix.rid }}; fi
+          out="dist/ByeDPI-PC-${{ needs.version.outputs.version }}-${{ matrix.rid }}"
+          dotnet publish src/ByeDpiPc.App -c Release -r ${{ matrix.rid }} --self-contained true \
+            -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:DebugType=none -o "$out"
+          cp LICENSE README.md "$out/" || true
+          tar -czf "$out.tar.gz" -C dist "ByeDPI-PC-${{ needs.version.outputs.version }}-${{ matrix.rid }}"
 
       - uses: actions/upload-artifact@v4
         with:
           name: ByeDPI-PC-${{ matrix.rid }}
-          path: ByeDPI-PC-${{ matrix.rid }}.*
+          path: |
+            dist/*.zip
+            dist/*.dmg
+            dist/*.tar.gz
 
   release:
-    if: startsWith(github.ref, 'refs/tags/v')
-    needs: build
+    needs: [version, build]
+    if: needs.version.outputs.release == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -67,4 +100,7 @@ jobs:
           merge-multiple: true
       - uses: softprops/action-gh-release@v2
         with:
+          tag_name: v${{ needs.version.outputs.version }}
+          name: ByeDPI PC ${{ needs.version.outputs.version }}
           files: artifacts/*
+          generate_release_notes: true
