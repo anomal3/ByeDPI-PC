@@ -23,7 +23,7 @@ public sealed class SiteChecker : IDisposable
     {
         _timeout = timeout;
         _socksPort = socksPort;
-        // На macOS/Linux проверяем системным curl: его TLS похож на браузерный (см. CurlProbe). Свой прокси — через HttpClient.
+        // На Windows/macOS/Linux проверяем системным curl: его TLS похож на браузерный (см. CurlProbe). Свой прокси — через HttpClient.
         _useCurl = proxy == null && CurlProbe.IsAvailable;
         var handler = new SocketsHttpHandler
         {

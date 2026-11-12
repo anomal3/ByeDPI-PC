@@ -89,7 +89,7 @@ public class ZapretTests
     {
         var s = new AppSettings { SchemaVersion = 1, Strategies = { new StrategyProfile("Моя", "-o1") }, ActiveStrategy = "Моя" };
         Presets.EnsureDefaults(s);
-        Assert.Equal(3, s.SchemaVersion);
+        Assert.Equal(4, s.SchemaVersion);
         Assert.Equal("Моя", s.ActiveStrategy);
         Assert.NotEmpty(s.EngineStrategies(EngineKind.Zapret));
         if (OperatingSystem.IsWindows()) Assert.Equal(EngineKind.Zapret, s.Engine);

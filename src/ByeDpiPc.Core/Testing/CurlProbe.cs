@@ -5,7 +5,7 @@ using System.Net.Sockets;
 namespace ByeDpiPc.Core.Testing;
 
 /// <summary>
-/// Проверка сайта системным curl (macOS, Linux).
+/// Проверка сайта системным curl (Windows 10+, macOS, Linux).
 /// DPI провайдера смотрит на отпечаток TLS ClientHello. Клиент .NET (SslStream) выглядит иначе, чем браузер,
 /// и через ту же стратегию обхода не проходит, хотя Chrome и системный curl открывают сайт. Поэтому
 /// проверять надо клиентом, похожим на браузер: так подбор видит ровно то, что увидит пользователь.
@@ -14,7 +14,11 @@ namespace ByeDpiPc.Core.Testing;
 /// </summary>
 public static class CurlProbe
 {
-    private const string CurlPath = "/usr/bin/curl";
+    private static readonly string CurlPath = OperatingSystem.IsWindows() ? Path.Combine(Environment.SystemDirectory, "curl.exe") : "/usr/bin/curl";
+    private static readonly string NullDevice = OperatingSystem.IsWindows() ? "NUL" : "/dev/null";
+
+    /// <summary>На Windows curl.exe (Schannel) проверяет отзыв сертификата, и эта проверка сама упирается в блокировки — отключаем.</summary>
+    private static readonly string[] PlatformArgs = OperatingSystem.IsWindows() ? new[] { "--ssl-no-revoke" } : Array.Empty<string>();
     private const string VideoAddressHost = "redirector.googlevideo.com";
 
     /// <summary>Имя видеоузла для списка сайтов: живой узел не нужен, DPI смотрит только на SNI.</summary>
@@ -27,14 +31,14 @@ public static class CurlProbe
     public static bool IsCritical(string? site)
     {
         if (string.IsNullOrWhiteSpace(site)) return false;
-        if (IsVideoNode(site)) return true;
+        if (IsVideoNode(site)) return IsAvailable;
         var s = site.Trim().ToLowerInvariant();
         if (s.StartsWith("https://")) s = s[8..];
         s = s.TrimEnd('/');
         return s is "youtube.com" or "www.youtube.com" or "youtubei.googleapis.com";
     }
 
-    public static bool IsAvailable => (OperatingSystem.IsMacOS() || OperatingSystem.IsLinux()) && File.Exists(CurlPath);
+    public static bool IsAvailable => (OperatingSystem.IsWindows() || OperatingSystem.IsMacOS() || OperatingSystem.IsLinux()) && File.Exists(CurlPath);
 
     public static bool IsVideoNode(string? site)
     {
@@ -51,10 +55,12 @@ public static class CurlProbe
         var seconds = Math.Max(2, (int)Math.Ceiling(timeout.TotalSeconds));
         var args = new List<string>
         {
-            "-sS", "-o", "/dev/null", "-m", seconds.ToString(), "--connect-timeout", seconds.ToString(),
+            "-sS", "-o", NullDevice, "-m", seconds.ToString(), "--connect-timeout", seconds.ToString(),
             "-A", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36",
             "-w", "%{http_code}",
         };
+
+        args.AddRange(PlatformArgs);
 
         string url;
         // Через обход проверяем настоящий видеоузел провайдера (адрес берётся со страницы видео):
@@ -131,6 +137,7 @@ public static class CurlProbe
                 "--socks5-hostname", $"127.0.0.1:{socksPort}",
                 "https://www.youtube.com/watch?v=jNQXAC9IVRw",
             }) psi.ArgumentList.Add(a);
+            foreach (var a in PlatformArgs) psi.ArgumentList.Add(a);
             using var proc = Process.Start(psi);
             if (proc == null) return null;
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);

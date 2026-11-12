@@ -19,7 +19,7 @@ public static class Presets
         new("Windows: split + disorder", "--split 1 --disorder 3+s --mod-http=h,d --auto=torst --tlsrec 1+s"),
         new("Fake + disorder", "--disorder 1 --fake -1 --ttl 8 -a1"),
         new("Только TLS-запись", "--tlsrec 1+s -a1"),
-        new("YouTube: сайт, API и видео", "-H :googleapis.com -d1 -d3+s -a1 -An -o1 -r-5+se -a1"),
+        new("YouTube: сайт, API и видео", "-H :googleapis.com -r5+s -s25+s -a1 -An -o1 -r-5+se -a1"),
     };
 
     /// <summary>
@@ -30,8 +30,8 @@ public static class Presets
     /// </summary>
     public static readonly string[] ProvenStrategies =
     {
-        "-H :googleapis.com -d1 -d3+s -a1 -An -o1 -r-5+se -a1",
         "-H :googleapis.com -r5+s -s25+s -a1 -An -o1 -r-5+se -a1",
+        "-H :googleapis.com -d1 -d3+s -a1 -An -o1 -r-5+se -a1",
         "-H :googleapis.com -r5+s -s25+s -a1 -An -o1 -r-5+se -a1 -At,r,s -s1 -d3+s -r1+s -a1",
         "-o1 -r-5+se -a1",
     };
@@ -107,6 +107,15 @@ public static class Presets
                     s.Strategies.Add(new StrategyProfile(p.Name, p.Arguments));
             if (s.TestSites.Count > 0 && !s.TestSites.Any(Testing.CurlProbe.IsVideoNode))
                 s.TestSites.Add(Testing.CurlProbe.VideoNodeHost);
+        }
+        if (s.SchemaVersion < 4)
+        {
+            // 1.2.1 → 1.2.2: профиль «YouTube: сайт, API и видео» переведён на -r5+s -s25+s: на Windows вариант с -d1 -d3+s
+            // не открывал youtubei.googleapis.com, а этот открывает и сайт, и API, и видеоузлы и на Windows, и на macOS.
+            s.SchemaVersion = 4;
+            var yt = DefaultStrategies[^1];
+            foreach (var p in s.EngineStrategies(EngineKind.ByeDpi).Where(x => x.Name == yt.Name && x.Arguments == ProvenStrategies[1]))
+                p.Arguments = yt.Arguments;
         }
         if (s.TestSites.Count == 0)
             s.TestSites.AddRange(LoadTestSites());

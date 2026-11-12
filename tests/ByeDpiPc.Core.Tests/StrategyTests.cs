@@ -79,7 +79,7 @@ public class StrategyTests
         var settings = new AppSettings { SchemaVersion = 2, TestSites = { "youtube.com" } };
         Presets.EnsureDefaults(settings);
         Assert.Contains(settings.TestSites, ByeDpiPc.Core.Testing.CurlProbe.IsVideoNode);
-        Assert.Equal(3, settings.SchemaVersion);
+        Assert.Equal(4, settings.SchemaVersion);
     }
 
     [Fact]
