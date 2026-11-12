@@ -19,6 +19,21 @@ public static class Presets
         new("Windows: split + disorder", "--split 1 --disorder 3+s --mod-http=h,d --auto=torst --tlsrec 1+s"),
         new("Fake + disorder", "--disorder 1 --fake -1 --ttl 8 -a1"),
         new("Только TLS-запись", "--tlsrec 1+s -a1"),
+        new("YouTube: сайт, API и видео", "-H :googleapis.com -d1 -d3+s -a1 -An -o1 -r-5+se -a1"),
+    };
+
+    /// <summary>
+    /// Стратегии, которые у провайдера с жёсткой фильтрацией (ihome, Москва) открывали ВСЁ, что нужно YouTube:
+    /// сайт, картинки, API youtubei.googleapis.com и видеоузлы googlevideo (по 12 из 12, проверка системным curl).
+    /// Одной стратегии не хватает: «-o1 -r-5+se» открывает сайт и видео, но не API (googleapis.com),
+    /// а split/disorder открывают API, но не видеоузлы. Поэтому две группы: для googleapis.com своя, для остального OOB.
+    /// </summary>
+    public static readonly string[] ProvenStrategies =
+    {
+        "-H :googleapis.com -d1 -d3+s -a1 -An -o1 -r-5+se -a1",
+        "-H :googleapis.com -r5+s -s25+s -a1 -An -o1 -r-5+se -a1",
+        "-H :googleapis.com -r5+s -s25+s -a1 -An -o1 -r-5+se -a1 -At,r,s -s1 -d3+s -r1+s -a1",
+        "-o1 -r-5+se -a1",
     };
 
     public static IReadOnlyList<AppRule> LoadRules()
@@ -44,6 +59,9 @@ public static class Presets
     public static List<string> Candidates(AppSettings s, EngineKind engine, bool includeFullSet = true)
     {
         var list = new List<string>();
+        // Проверенные стратегии, которые открывают и сайт, и видеоузлы YouTube, идут первыми:
+        // с StopOnFirstPerfect подбор заканчивается на первой же подошедшей.
+        if (engine == EngineKind.ByeDpi) list.AddRange(ProvenStrategies);
         if (s.GetActiveStrategy(engine) is { } active) list.Add(active.Arguments);
         list.AddRange(s.EngineStrategies(engine).Select(p => p.Arguments));
         if (engine == EngineKind.Zapret)
@@ -78,6 +96,17 @@ public static class Presets
         {
             // 1.0 → 1.1: на Windows по умолчанию движок zapret, в сайты для проверки — API YouTube.
             s.SchemaVersion = 2;
+        }
+        if (s.SchemaVersion < 3)
+        {
+            // 1.2 → 1.3: в проверку добавлен видеоузел googlevideo (сайт YouTube может открываться без видео),
+            // а в профили — стратегия, открывающая сайт, API и видео одновременно.
+            s.SchemaVersion = 3;
+            foreach (var p in DefaultStrategies)
+                if (s.EngineStrategies(EngineKind.ByeDpi).All(x => x.Name != p.Name))
+                    s.Strategies.Add(new StrategyProfile(p.Name, p.Arguments));
+            if (s.TestSites.Count > 0 && !s.TestSites.Any(Testing.CurlProbe.IsVideoNode))
+                s.TestSites.Add(Testing.CurlProbe.VideoNodeHost);
         }
         if (s.TestSites.Count == 0)
             s.TestSites.AddRange(LoadTestSites());

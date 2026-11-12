@@ -25,7 +25,7 @@ public static class VpnDetector
                 .Where(n => n.NetworkInterfaceType != NetworkInterfaceType.Loopback)
                 .Where(n => !new[] { "teredo", "isatap", "6to4", "hyper-v", "virtualbox", "vmware" }
                     .Any(x => n.Description.Contains(x, StringComparison.OrdinalIgnoreCase)))
-                .Where(n => n.GetIPProperties().UnicastAddresses.Count > 0)
+                .Where(HasRoutableAddress)
                 .Select(n => n.Name)
                 .Distinct()
                 .ToList();
@@ -34,6 +34,28 @@ public static class VpnDetector
         {
             return new();
         }
+    }
+
+    /// <summary>
+    /// У настоящего VPN есть обычный адрес. Системные туннели macOS (utun0…utun9: iCloud Private Relay, AirDrop и т.п.)
+    /// имеют только link-local IPv6 (fe80::) и не перехватывают трафик. Свой TUN ByeDPI (172.19.0.1) тоже не считается.
+    /// </summary>
+    internal static bool HasRoutableAddress(NetworkInterface n)
+    {
+        foreach (var a in n.GetIPProperties().UnicastAddresses)
+        {
+            var ip = a.Address;
+            if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6)
+            {
+                if (ip.IsIPv6LinkLocal || ip.IsIPv6Multicast) continue;
+                return true;
+            }
+            var b = ip.GetAddressBytes();
+            if (b.Length == 4 && b[0] == 169 && b[1] == 254) continue;          // APIPA
+            if (b.Length == 4 && b[0] == 172 && b[1] == 19 && b[2] == 0) continue; // собственный TUN
+            return true;
+        }
+        return false;
     }
 
     public static string? Warning()

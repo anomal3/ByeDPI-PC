@@ -73,6 +73,10 @@ public sealed class AutoTuner
                     progress?.Report(new TuneStatus(TunePhase.Searching, $"Подбираю стратегию: {p.Done} из {p.Total}", (double)p.Done / p.Total));
             }), ct);
 
+        // Сначала стратегии, которые открывают все нужные YouTube сайты (страница, API, видеоузел), потом остальные.
+        int CriticalOk(StrategyResult r) => r.Sites.Count(x => x.Ok && blocked.Contains(x.Site, StringComparer.OrdinalIgnoreCase) && CurlProbe.IsCritical(x.Site));
+        results = results.OrderByDescending(CriticalOk).ThenByDescending(r => r.Success).ThenBy(r => r.AverageTime).ToList();
+
         var best = results.FirstOrDefault();
         if (best == null || best.Sites.Count == 0)
             return new TuneOutcome(false, null, "Не удалось проверить стратегии: " + (best?.Error ?? "нет результатов"), Array.Empty<string>());
@@ -126,6 +130,8 @@ public sealed class AutoTuner
         var opened = blocked.Where(ok.Contains).ToList();
         var broken = open.Where(x => !ok.Contains(x)).ToList();
         var good = broken.Count <= 1 && opened.Count >= Math.Ceiling(blocked.Count * 0.6);
+        // Страница, API и видеоузел YouTube, заблокированные напрямую, обязаны открыться: иначе сайт грузится, а видео нет.
+        if (blocked.Any(b => CurlProbe.IsCritical(b) && !ok.Contains(b))) good = false;
         return (good, opened, broken);
     }
 

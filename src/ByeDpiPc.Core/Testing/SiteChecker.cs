@@ -16,10 +16,15 @@ public sealed class SiteChecker : IDisposable
     private const int ReadLimit = 64 * 1024;
     private readonly HttpClient _http;
     private readonly TimeSpan _timeout;
+    private readonly int? _socksPort;
+    private readonly bool _useCurl;
 
     public SiteChecker(int? socksPort, TimeSpan timeout, Uri? proxy = null)
     {
         _timeout = timeout;
+        _socksPort = socksPort;
+        // На macOS/Linux проверяем системным curl: его TLS похож на браузерный (см. CurlProbe). Свой прокси — через HttpClient.
+        _useCurl = proxy == null && CurlProbe.IsAvailable;
         var handler = new SocketsHttpHandler
         {
             ConnectTimeout = timeout,
@@ -45,6 +50,7 @@ public sealed class SiteChecker : IDisposable
 
     public async Task<SiteResult> CheckAsync(string site, CancellationToken ct)
     {
+        if (_useCurl) return await CurlProbe.CheckAsync(site, _socksPort, _timeout, ct);
         var url = site.StartsWith("http://") || site.StartsWith("https://") ? site : "https://" + site;
         var sw = Stopwatch.StartNew();
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);

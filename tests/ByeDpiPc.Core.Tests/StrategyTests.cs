@@ -64,6 +64,55 @@ public class StrategyTests
         Assert.NotEmpty(settings.TestSites);
     }
 
+    [Theory]
+    [InlineData("rr1---sn-5hne6nzk.googlevideo.com", true)]
+    [InlineData("https://rr3---sn-pivhx-n8vs.googlevideo.com/", true)]
+    [InlineData("manifest.googlevideo.com", false)]
+    [InlineData("youtube.com", false)]
+    [InlineData("", false)]
+    public void CurlProbe_RecognizesVideoNodes(string site, bool expected) =>
+        Assert.Equal(expected, ByeDpiPc.Core.Testing.CurlProbe.IsVideoNode(site));
+
+    [Fact]
+    public void Presets_AddVideoNodeToExistingTestSites()
+    {
+        var settings = new AppSettings { SchemaVersion = 2, TestSites = { "youtube.com" } };
+        Presets.EnsureDefaults(settings);
+        Assert.Contains(settings.TestSites, ByeDpiPc.Core.Testing.CurlProbe.IsVideoNode);
+        Assert.Equal(3, settings.SchemaVersion);
+    }
+
+    [Fact]
+    public void Candidates_StartWithProvenStrategies()
+    {
+        var settings = new AppSettings();
+        Presets.EnsureDefaults(settings);
+        var list = Presets.Candidates(settings, EngineKind.ByeDpi);
+        Assert.Equal(Presets.ProvenStrategies[0], list[0]);
+        Assert.Equal(list.Count, list.Distinct().Count());
+    }
+
+    [Fact]
+    public void ProvenStrategies_PassThroughArgumentBuilder()
+    {
+        foreach (var s in Presets.ProvenStrategies)
+        {
+            var args = CiadpiCommand.BuildArguments(s, 1080, "www.iana.org");
+            Assert.Equal(new[] { "-i", "127.0.0.1", "-p", "1080" }, args.Take(4));
+            Assert.Contains("-o1", args);
+            if (s.StartsWith("-H")) Assert.Equal(new[] { "-H", ":googleapis.com" }, args.Skip(4).Take(2));
+        }
+    }
+
+    [Theory]
+    [InlineData("youtube.com", true)]
+    [InlineData("youtubei.googleapis.com", true)]
+    [InlineData("rr1---sn-5hne6nzk.googlevideo.com", true)]
+    [InlineData("discord.com", false)]
+    [InlineData("i.ytimg.com", false)]
+    public void CurlProbe_CriticalSites(string site, bool expected) =>
+        Assert.Equal(expected, ByeDpiPc.Core.Testing.CurlProbe.IsCritical(site));
+
     [Fact]
     public void Presets_RespectRemoved()
     {

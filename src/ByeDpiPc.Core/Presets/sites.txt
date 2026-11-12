@@ -3,6 +3,7 @@ youtu.be
 i.ytimg.com
 yt3.ggpht.com
 manifest.googlevideo.com
+rr1---sn-5hne6nzk.googlevideo.com
 youtubei.googleapis.com
 jnn-pa.googleapis.com
 discord.com
